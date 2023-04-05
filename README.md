@@ -1,1 +1,1 @@
-# GLPI-Software-Vulnerability-Assessment
+# GLPI-NVD-PLUGIN

@@ -4,7 +4,7 @@
  *
  * @return boolean
  */
-function plugin_glpisoftwarevulnerabilityassessment_install() {
+function plugin_nvd_install() {
    //do some stuff like instanciating databases, default values, ...
    return true;
 }
@@ -14,7 +14,7 @@ function plugin_glpisoftwarevulnerabilityassessment_install() {
  *
  * @return boolean
  */
-function plugin_glpisoftwarevulnerabilityassessment_uninstall() {
+function plugin_nvd_uninstall() {
    //to some stuff, like removing tables, generated files, ...
    return true;
 }

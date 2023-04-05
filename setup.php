@@ -1,17 +1,17 @@
 <?php
 
-define('PLUGIN_GLPISOFTWAREVULNERABILITYASSESSMENT_VERSION', '1.0.0');
-define('PLUGIN_GLPISOFTWAREVULNERABILITYASSESSMENT_MIN_GLPI', '10.0.6');
+define('PLUGIN_NVD_VERSION', '1.0.0');
+define('PLUGIN_NVD_MIN_GLPI', '10.0.6');
 
 /**
  * Init the hooks of the plugin
  *
  * @return void
  */
-function plugin_init_glpisoftwarevulnerabilityassessment() {
+function plugin_init_nvd() {
    global $PLUGIN_HOOKS;
 
-   $PLUGIN_HOOKS['csrf_compliant']['glpisoftwarevulnerabilityassessment'] = true;
+   $PLUGIN_HOOKS['csrf_compliant']['nvd'] = true;
 
    //some code here, like call to Plugin::registerClass(), populating PLUGIN_HOOKS, ...
 
@@ -26,17 +26,17 @@ function plugin_init_glpisoftwarevulnerabilityassessment() {
  *
  * @return array
  */
-function plugin_version_glpisoftwarevulnerabilityassessment() {
+function plugin_version_nvd() {
    return [
-      'name'           => 'GLPI Software Vulnerability Assessment',
-      'shortname'      => 'glpisva',
-      'version'        => PLUGIN_GLPISOFTWAREVULNERABILITYASSESSMENT_VERSION,
+      'name'           => 'NVD',
+      'shortname'      => 'nvd',
+      'version'        => PLUGIN_NVD_VERSION,
       'author'         => 'Carlos Borau González',
       'license'        => 'GLPv3',
-      'homepage'       => 'https://github.com/Carlos-Borau/GLPI-Software-Vulnerability-Assessment',
+      'homepage'       => 'https://github.com/Carlos-Borau/GLPI-NVD-PLUGIN',
       'requirements'   => [
          'glpi'   => [
-            'min' => PLUGIN_GLPISOFTWAREVULNERABILITYASSESSMENT_MIN_GLPI
+            'min' => PLUGIN_NVD_MIN_GLPI
          ]
       ]
    ];
@@ -49,12 +49,12 @@ function plugin_version_glpisoftwarevulnerabilityassessment() {
  * 
  * @todo
  */
-function plugin_glpisoftwarevulnerabilityassessment_check_prerequisites() {
+function plugin_nvd_check_prerequisites() {
    
     // Check that the GLPI version is compatible
-    if (version_compare(GLPI_VERSION, PLUGIN_GLPISOFTWAREVULNERABILITYASSESSMENT_MIN_GLPI, 'lt')) {
+    if (version_compare(GLPI_VERSION, PLUGIN_NVD_MIN_GLPI, 'lt')) {
 
-        echo "This plugin Requires GLPI >=".PLUGIN_GLPISOFTWAREVULNERABILITYASSESSMENT_MIN_GLPI;
+        echo "This plugin Requires GLPI >=".PLUGIN_NVD_MIN_GLPI;
 
         return false;
     }
@@ -72,7 +72,7 @@ function plugin_glpisoftwarevulnerabilityassessment_check_prerequisites() {
  * 
  * @todo
  */
-function plugin_glpisoftwarevulnerabilityassessment_check_config($verbose = false) {
+function plugin_nvd_check_config($verbose = false) {
    if (true) { // Your configuration check
       return true;
    }
@@ -88,7 +88,7 @@ function plugin_glpisoftwarevulnerabilityassessment_check_config($verbose = fals
  *
  * @return array
  */
-function plugin_glpisoftwarevulnerabilityassessment_options() {
+function plugin_nvd_options() {
    return [
       Plugin::OPTION_AUTOINSTALL_DISABLED => true,
    ];
