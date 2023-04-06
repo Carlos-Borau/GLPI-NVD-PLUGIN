@@ -1,5 +1,7 @@
 <?php
 
+use Glpi\Plugin\Hooks;
+
 define('PLUGIN_NVD_VERSION', '1.0.0');
 define('PLUGIN_NVD_MIN_GLPI', '10.0.6');
 
@@ -13,7 +15,21 @@ function plugin_init_nvd() {
 
    $PLUGIN_HOOKS['csrf_compliant']['nvd'] = true;
 
-   //some code here, like call to Plugin::registerClass(), populating PLUGIN_HOOKS, ...
+   Plugin::registerClass(PluginNvdNvd::class);
+
+   Plugin::registerClass(PluginNvdConfig::class, ['addtabon' => 
+      [Config::class
+   ]]);
+
+   Plugin::registerClass(PluginNvdVuln::class, ['addtabon' => 
+      ['Central',
+       'Computer',
+      'Software'
+   ]]);
+
+   Plugin::registerClass(PluginNvdCpe::class);
+
+
 
    /**
     * 
