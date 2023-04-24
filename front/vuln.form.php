@@ -1,3 +1,7 @@
+<style>
+    <?php include ("../nvd.css"); ?>
+</style>
+
 <?php
 
 include ("../../../inc/includes.php");
@@ -37,7 +41,7 @@ if ($_POST && isset($_POST['part']) && isset($_POST['vendor']) && isset($_POST['
 
     $records = $nvd->requestNvdRecords();
 
-    echo json_encode($records, JSON_PRETTY_PRINT);
+    echo $nvd->getVulnFormatedTable($records);
 
     // Html::redirect("{$CFG_GLPI['root_doc']}/plugins/nvd/front/vuln.php");
 

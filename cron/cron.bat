@@ -1,0 +1,1 @@
+"F:\XAMPP\php\php.exe" "F:\XAMPP\htdocs\glpi\front\cron.php"

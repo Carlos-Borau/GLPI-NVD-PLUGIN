@@ -5,7 +5,11 @@
  * @return boolean
  */
 function plugin_nvd_install() {
-   //do some stuff like instanciating databases, default values, ...
+   
+   require_once(PLUGIN_NVD_DIR . '\installation\install.php');
+
+   pluginNvdInstall();
+
    return true;
 }
 
@@ -15,6 +19,10 @@ function plugin_nvd_install() {
  * @return boolean
  */
 function plugin_nvd_uninstall() {
-   //to some stuff, like removing tables, generated files, ...
+   
+   require_once(PLUGIN_NVD_DIR . '\installation\uninstall.php');
+
+   pluginNvdUninstall();
+
    return true;
 }

@@ -5,6 +5,8 @@ use Glpi\Plugin\Hooks;
 define('PLUGIN_NVD_VERSION', '1.0.0');
 define('PLUGIN_NVD_MIN_GLPI', '10.0.6');
 
+define('PLUGIN_NVD_DIR', __DIR__);
+
 /**
  * Init the hooks of the plugin
  *
@@ -30,6 +32,7 @@ function plugin_init_nvd() {
    Plugin::registerClass(PluginNvdCpe::class);
 
 
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['nvd'] = 'nvd.css';
 
    /**
     * 

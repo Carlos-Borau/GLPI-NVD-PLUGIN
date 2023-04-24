@@ -10,7 +10,8 @@ class PluginNvdConnection {
 
     private static string $apiKey;
 
-    private const baseUrl           = "https://services.nvd.nist.gov/rest/json/cves/2.0/";
+    private const baseRequestUrl    = "https://services.nvd.nist.gov/rest/json/cves/2.0/";
+    private const baseCveUrl        = "https://nvd.nist.gov/vuln/detail/";
 
     private string $urlParams;
 
@@ -28,6 +29,11 @@ class PluginNvdConnection {
         * @todo Get API Key on DB
         */ 
 		return PluginNvdConnection::$apiKey;
+    }
+
+    static function getCveNvdUrl($CveID) {
+
+        return self::baseCveUrl . $CveID;
     }
 
     public function setUrlParams($cpeName, $isVulnerable = False, $lastModDate = False){
@@ -54,7 +60,7 @@ class PluginNvdConnection {
 
     public function getCompleteUrl() {
 
-        return self::baseUrl . '?' . $this->urlParams;
+        return self::baseRequestUrl . '?' . $this->urlParams;
     }
 
     public function requestNvdRecords(){
@@ -64,7 +70,7 @@ class PluginNvdConnection {
         * @todo Retrieve API key from DB
         */ 
 
-        $url    = self::baseUrl . '?' . $this->urlParams;
+        $url    = self::baseRequestUrl . '?' . $this->urlParams;
         $header = API_KEY . ': ' . self::$apiKey;
 
         $ch = curl_init();
@@ -78,6 +84,50 @@ class PluginNvdConnection {
         curl_close($ch);
 
         return json_decode($output, true);
+    }
+
+    public function getVulnFormatedTable($records){
+
+        $resultsPerPage     = $records['resultsPerPage'];
+        $startIndex         = $records['startIndex'];
+        $totalResults       = $records['totalResults'];
+        $format             = $records['format'];
+        $version            = $records['version'];
+        $timestamp          = $records['timestamp'];
+        $vulnerabilities    = $records['vulnerabilities'];
+
+        echo 'Retrieved ' . $totalResults . ' records from NVD database <br>';
+
+        $table =    '<table class="center">';
+        $table .=   '<colgroup><col width="10%"/><col width="20%"/><col width="70%"/></colgroup>';
+        $table .=   '<tr>';
+        $table .=   '<th>CVE-ID</th>';
+        $table .=   '<th>' . __('Publish Date') . '</th>';
+        $table .=   '<th>' . __('Description') . '</th>';
+        $table .=   '</tr>';
+
+        foreach($vulnerabilities as $v){
+
+            $table .= '<tr>';
+
+            $id             = $v['cve']['id'];
+            $publishDate    = $v['cve']['published'];
+            $descriptions   = [];
+
+            foreach($v['cve']['descriptions'] as $d){
+                $descriptions[$d['lang']] = $d['value'];
+            }
+
+            $table .= '<td>' . $id . '</td>';
+            $table .= '<td>' . $publishDate . '</td>';
+            $table .= '<td>' . $descriptions['en'] . '</td>';
+
+            $table .= '</tr>';
+        }
+
+        $table .= '</table>';
+
+        return $table;
     }
 
 }
