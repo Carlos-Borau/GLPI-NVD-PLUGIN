@@ -20,7 +20,7 @@ class PluginNvdCpe {
 
     }
 
-    public function __construct($part, $vendor, $product, $version){
+    public function __construct($part, $vendor, $product, $version) {
 
         $this->part    = $part;
         $this->vendor  = $vendor;

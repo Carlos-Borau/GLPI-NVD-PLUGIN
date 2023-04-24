@@ -15,7 +15,7 @@ class PluginNvdConnection {
 
     private string $urlParams;
 
-	static function setApiKey($apiKey){
+	static function setApiKey($apiKey) {
         /**
         * 
         * @todo Set API Key on DB
@@ -36,7 +36,7 @@ class PluginNvdConnection {
         return self::baseCveUrl . $CveID;
     }
 
-    public function setUrlParams($cpeName, $isVulnerable = False, $lastModDate = False){
+    public function setUrlParams($cpeName, $isVulnerable = False, $lastModDate = False) {
 
         $this->urlParams = CPE_NAME . '=' . $cpeName;
 
@@ -63,7 +63,7 @@ class PluginNvdConnection {
         return self::baseRequestUrl . '?' . $this->urlParams;
     }
 
-    public function requestNvdRecords(){
+    public function requestNvdRecords() {
 
         /**
         * 
@@ -86,7 +86,7 @@ class PluginNvdConnection {
         return json_decode($output, true);
     }
 
-    public function getVulnFormatedTable($records){
+    public function getVulnFormatedTable($records) {
 
         $resultsPerPage     = $records['resultsPerPage'];
         $startIndex         = $records['startIndex'];
@@ -106,7 +106,7 @@ class PluginNvdConnection {
         $table .=   '<th>' . __('Description') . '</th>';
         $table .=   '</tr>';
 
-        foreach($vulnerabilities as $v){
+        foreach($vulnerabilities as $v) {
 
             $table .= '<tr>';
 
