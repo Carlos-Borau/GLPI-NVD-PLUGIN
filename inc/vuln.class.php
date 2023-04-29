@@ -5,6 +5,8 @@ class PluginNvdVuln extends CommonDBTM {
     /**
     * Check if can view item
     *
+    * @since 1.0.0
+    *
     * @return boolean
     */
     static function canView() {
@@ -15,15 +17,19 @@ class PluginNvdVuln extends CommonDBTM {
     /**
     * Get tab name for displayed item
     *
+    * @since 1.0.0
+    *
     * @return boolean
     */
     function getTabNameForItem(CommonGLPI $item, $withtemplate=0) {
 
-        return self::createTabEntry('Vuln');
+        return self::createTabEntry(__('Vulnerabilities'));
     }
 
     /**
     * Display tab content for given item
+    *
+    * @since 1.0.0
     *
     * @param CommonGLPI $item       Item for which to display vulnerabilities
     * @param int $tabnum
@@ -56,6 +62,8 @@ class PluginNvdVuln extends CommonDBTM {
 
     /**
     * Display tab content for given Software item
+    *
+    * @since 1.0.0
     *
     * @param Software $item       Software item for which to display vulnerabilities
     *
@@ -100,6 +108,8 @@ class PluginNvdVuln extends CommonDBTM {
 
     /**
     * Display tab content for given Device item
+    *
+    * @since 1.0.0
     *
     * @param CommonGLPI $item       Device item for which to display vulnerabilities
     *
@@ -170,6 +180,8 @@ class PluginNvdVuln extends CommonDBTM {
 
     /**
     * Display tab content on central dashboard
+    *
+    * @since 1.0.0
     *
     * @return void
     */
@@ -252,6 +264,8 @@ class PluginNvdVuln extends CommonDBTM {
     /**
     * Request list of vulnerabilities for the given item
     *
+    * @since 1.0.0
+    *
     * @param array $vulnerabilityIDs       IDs of vulnerabilities to query
     *
     * @return DBmysqlIterator
@@ -278,6 +292,8 @@ class PluginNvdVuln extends CommonDBTM {
     /**
     * Display list of vulnerabilities for the given item
     *
+    * @since 1.0.0
+    *
     * @param array $DBQueryResult       Result of the CVE query
     * @param array $vulnerableInstances Array of vulnerability IDs and their instances
     * @param bool $is_software          Whether or not to treat the instances as software versions or programs 
@@ -301,7 +317,7 @@ class PluginNvdVuln extends CommonDBTM {
             $table .= '<tr>';
             $table .= '<td>' . $row['severity'] . '</td>';
             $table .= '<td>' . $row['base_score'] . '</td>';
-            $table .= '<td> <a href="' . PluginNvdConnection::getCveNvdUrl($row['cve_id']) . '">' . $row['cve_id'] . '</a></td>';
+            $table .= '<td> <a href="' . PluginNvdNvdconnection::getCveNvdUrl($row['cve_id']) . '">' . $row['cve_id'] . '</a></td>';
             $table .= '<td>' . $row['description'] . '</td>';
             $table .= '<td>';
             $table .= $vulnerableInstances[$id];

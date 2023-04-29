@@ -29,8 +29,14 @@ function plugin_init_nvd() {
       'Software'
    ]]);
 
-   Plugin::registerClass(PluginNvdCpe::class);
+   Plugin::registerClass(PluginNvdSoftwarecpe::class, ['addtabon' =>
+      [Software::class
+   ]]);
 
+   Plugin::registerClass(PluginNvdCpe::class);
+   Plugin::registerClass(PluginNvdConnection::class);
+   Plugin::registerClass(PluginNvdNvdconnection::class);
+   Plugin::registerClass(PluginNvdCpeconnection::class);
 
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['nvd'] = 'nvd.css';
 

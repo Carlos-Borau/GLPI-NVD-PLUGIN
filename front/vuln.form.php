@@ -40,13 +40,56 @@ if ($_POST && isset($_POST['part']) && isset($_POST['vendor']) && isset($_POST['
     echo $nvd->getCompleteUrl() . '<br>';
 
     $records = $nvd->requestNvdRecords();
-
-    echo $nvd->getVulnFormatedTable($records);
+    echo getVulnFormatedTable(json_decode($records, true));
 
     // Html::redirect("{$CFG_GLPI['root_doc']}/plugins/nvd/front/vuln.php");
 
 } else {
     Html::redirect("{$CFG_GLPI['root_doc']}/plugins/nvd/front/vuln.php");
+}
+
+function getVulnFormatedTable($records) {
+
+    $resultsPerPage     = $records['resultsPerPage'];
+    $startIndex         = $records['startIndex'];
+    $totalResults       = $records['totalResults'];
+    $format             = $records['format'];
+    $version            = $records['version'];
+    $timestamp          = $records['timestamp'];
+    $vulnerabilities    = $records['vulnerabilities'];
+
+    echo 'Retrieved ' . $totalResults . ' records from NVD database <br>';
+
+    $table =    '<table class="center">';
+    $table .=   '<colgroup><col width="10%"/><col width="20%"/><col width="70%"/></colgroup>';
+    $table .=   '<tr>';
+    $table .=   '<th>CVE-ID</th>';
+    $table .=   '<th>' . __('Publish Date') . '</th>';
+    $table .=   '<th>' . __('Description') . '</th>';
+    $table .=   '</tr>';
+
+    foreach($vulnerabilities as $v) {
+
+        $table .= '<tr>';
+
+        $id             = $v['cve']['id'];
+        $publishDate    = $v['cve']['published'];
+        $descriptions   = [];
+
+        foreach($v['cve']['descriptions'] as $d){
+            $descriptions[$d['lang']] = $d['value'];
+        }
+
+        $table .= '<td>' . $id . '</td>';
+        $table .= '<td>' . $publishDate . '</td>';
+        $table .= '<td>' . $descriptions['en'] . '</td>';
+
+        $table .= '</tr>';
+    }
+
+    $table .= '</table>';
+
+    return $table;
 }
     
 ?>
