@@ -11,8 +11,11 @@ class PluginNvdCveconnection extends PluginNvdConnection {
      * 
      * @return void 
      */
-    public function __construct() {
-        parent::__construct(self::baseRequestUrl);
+    public function __construct($vendor = NULL) {
+
+        $baseUrl = self::baseRequestUrl . $vendor;
+
+        parent::__construct($baseUrl);
     }
 }
 

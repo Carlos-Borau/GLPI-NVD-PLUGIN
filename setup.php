@@ -24,9 +24,9 @@ function plugin_init_nvd() {
    ]]);
 
    Plugin::registerClass(PluginNvdVuln::class, ['addtabon' => 
-      ['Central',
-       'Computer',
-      'Software'
+      [Central::class,
+       Computer::class,
+       Software::class
    ]]);
 
    Plugin::registerClass(PluginNvdSoftwarecpe::class, ['addtabon' =>
@@ -38,7 +38,8 @@ function plugin_init_nvd() {
    Plugin::registerClass(PluginNvdNvdconnection::class);
    Plugin::registerClass(PluginNvdCpeconnection::class);
 
-   $PLUGIN_HOOKS[Hooks::ADD_CSS]['nvd'] = 'nvd.css';
+   $PLUGIN_HOOKS[Hooks::ADD_JAVASCRIPT]['nvd'] = 'js/nvd.js';
+   $PLUGIN_HOOKS[Hooks::ADD_CSS]['nvd'] = 'css/nvd.css';
 
    /**
     * 
