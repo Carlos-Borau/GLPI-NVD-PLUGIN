@@ -66,30 +66,112 @@ class PluginNvdCpe {
     }
 
     /**
-     * Returns a string containing a vendor name suitable for CPE format
+     * Returns an array containing sugested search terms to locate the vendor
      * 
      * @since 1.0.0
      * 
-     * @return string  
+     * @param string    $vendorName     Vendor name to stract the terms from
+     * 
+     * @return array  
      */
     public static function getVendorSugestedSearchTerms($vendorName) {
-
+        
+        // CPE names are allways lowercase
         $vendorName = strtolower($vendorName);
-        $vendorName = str_replace('corporation', '', $vendorName);
-        $vendorName = str_replace('inc.', '', $vendorName);
-        $vendorName = str_replace(',', ' ', $vendorName);
-        $vendorName = preg_replace('/\b\w{1,3}\b/', '', $vendorName);
-        $vendorName = preg_replace('/\s+/', ' ', $vendorName);
-        $vendorName = trim($vendorName);
-        $vendorName = str_replace(' ', ',', $vendorName);
 
+        // Remove unuseful common terms
+        $vendorName = self::removeCommonTerms($vendorName);
+
+        // Remove small words ( 1 <= len <= 3)
+        $vendorName = preg_replace('/\b\w{1,3}\b/', '', $vendorName);
+
+        // Clean string from unwanted characters
+        $vendorName = self::cleanString($vendorName);
+
+        // Turn string into array
         $terms = explode(',', $vendorName);
         
-        usort($terms, function($a, $b) { 
-            return strlen($b) <=> strlen($a);
-        });
-
         return $terms;
+    }
+
+    /**
+     * Returns an array containing sugested search terms to locate the product
+     * 
+     * @since 1.0.0
+     * 
+     * @param string    $productName    Product name to stract the terms from
+     * @param array     $vendor_terms   Array containing search terms for the software's vendor
+     * 
+     * @return array  
+     */
+    public static function getProductSugestedSearchTerms($productName, $vendor_terms) {
+
+        // CPE names are allways lowercase
+        $productName = strtolower($productName);
+
+        // Remove vendor terms from software name
+        foreach ($vendor_terms as $term) {
+            $productName = str_replace($term, '', $productName);
+        }
+
+        // Remove unuseful common terms
+        $productName = self::removeCommonTerms($productName);
+
+        // Remove trailing information
+        $productName = preg_replace('/-.*/', '', $productName);
+
+        // Remove additional information
+        $productName = preg_replace('/\(.*\)/', '', $productName);
+
+        // Remove version
+        $productName = preg_replace('/(\d\.)+\d/', '', $productName);
+
+        // Clean string from unwanted characters
+        $productName = self::cleanString($productName);
+
+        // Turn string into array
+        $terms = explode(',', $productName);
+        
+        return $terms;
+    }
+
+    /**
+     * Removes common but unuseful terms from vendor or product name
+     * 
+     * @since 1.0.0
+     * 
+     * @param string    $name    Product or vendor name to remove the terms from
+     * 
+     * @return string  
+     */
+    private static function removeCommonTerms($name) {
+
+        $name = str_replace('corporation', '', $name);
+        $name = str_replace('inc.', '', $name);
+        $name = str_replace('team', '', $name);
+        $name = str_replace('edition', '', $name);
+        $name = str_replace('32-bit', '', $name);
+        $name = str_replace('64-bit', '', $name);
+
+        return $name;
+    }
+
+    /**
+     * Cleans string from unwanted characters
+     * 
+     * @since 1.0.0
+     * 
+     * @param string    $name    Product or vendor name to clean
+     * 
+     * @return string  
+     */
+    private static function cleanString($name) {
+
+        $name = preg_replace('/\s+/', ' ', $name);
+        $name = trim($name);
+        $name = str_replace(' ', ',', $name);
+
+        return $name;
     }
 }
 

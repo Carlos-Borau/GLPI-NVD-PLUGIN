@@ -48,17 +48,29 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
     }
 
     /**
-    * Display tab content for given Software item
-    *
-    * @since 1.0.0
-    *
-    * @param Software $item       Software item for which to display cpe associations
-    *
-    * @return void
-    */
+     * Display tab content for given Software item
+     *
+     * @since 1.0.0
+     *
+     * @param Software $item       Software item for which to display cpe associations
+     *
+     * @return void
+     */
     private static function displayForSoftware(Software $item) {
 
         global $DB, $CFG_GLPI;
+
+        $CVEConn = new PluginNvdCveconnection();
+        $output = json_decode($CVEConn->launchRequest(), true);
+
+        $vendors = $output['vendor'];
+        $products = [];
+
+        $action = 'insert';
+        $vendor_name = NULL;
+        $product_name = NULL;
+        $vendor_GLPI_name = NULL;
+        $product_GLPI_name = NULL;
 
         /***********************************************************************************************
          * Request CPE vendor and product name associated with given software
@@ -71,17 +83,6 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
                                 'FROM' => 'glpi_plugin_nvd_cpe_software_associations',
                                 'WHERE' => ['softwares_id' => $item->getID()]]);
 
-        $action = 'insert';
-        $vendor_name = NULL;
-        $product_name = NULL;
-        $vendor_GLPI_name = NULL;
-        $product_GLPI_name = NULL;
-
-        $CVEConn = new PluginNvdCveconnection();
-        $output = json_decode($CVEConn->launchRequest(), true);
-        $vendors = $output['vendor'];
-        $products = [];
-
         if ($res->numrows() > 0) {
 
             $action = 'update';
@@ -90,51 +91,190 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
             $vendor_name = $row['vendor_name'];
             $product_name = $row['product_name'];
 
+            // Get list of products from MITRE CVE API for associated vendor
             $CVEConn = new PluginNvdCveconnection($vendor_name);
             $output = json_decode($CVEConn->launchRequest(), true);
+
             $products = $output['product'];
+        } 
 
-        } else {
+        /***********************************************************************************************
+         * Request software and vendor names in GLPI for given software
+         * 
+         *  SELECT glpi_manufacturers.name, glpi_softwares.name
+         *  FROM glpi_softwares
+         *  INNER JOIN glpi_manufacturers
+         *  ON glpi_softwares.manufacturers_id = glpi_manufacturers.id
+         *  WHERE glpi_softwares.id = $item->getID()
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => ['glpi_manufacturers.name AS vendor', 'glpi_softwares.name AS product'],
+        'FROM' => 'glpi_softwares',
+        'INNER JOIN' => ['glpi_manufacturers' => ['FKEY' => ['glpi_softwares' => 'manufacturers_id',
+                                                                'glpi_manufacturers' => 'id']]],
+        'WHERE' => ['glpi_softwares.id' => $item->getID()]]);
 
-            /***********************************************************************************************
-             * Request software and vendor name for given software
-             * 
-             *  SELECT glpi_manufacturers.name, glpi_softwares.name
-             *  FROM glpi_softwares
-             *  INNER JOIN glpi_manufacturers
-             *  ON glpi_softwares.manufacturers_id = glpi_manufacturers.id
-             *  WHERE glpi_softwares.id = $item->getID()
-             **********************************************************************************************/
-            $res = $DB->request(['SELECT' => ['glpi_manufacturers.name AS vendor', 'glpi_softwares.name AS product'],
-            'FROM' => 'glpi_softwares',
-            'INNER JOIN' => ['glpi_manufacturers' => ['FKEY' => ['glpi_softwares' => 'manufacturers_id',
-                                                                    'glpi_manufacturers' => 'id']]],
-            'WHERE' => ['glpi_softwares.id' => $item->getID()]]);
+        $row = $res->current();
 
-            $row = $res->current();
-
-            $vendor_GLPI_name = $row['vendor'];
-            $product_GLPI_name = $row['product'];
-        }
+        $vendor_GLPI_name = $row['vendor'];
+        $product_GLPI_name = $row['product'];
         
-        self::printVendorAndProductDropdowns($action, $item->getID(), $vendors, $vendor_name, $products, $product_name);
+        // Print current CPE associations for given software
+        self::printCurrentCPEAssociation($vendor_name, $product_name);
 
-        echo "<script>addEventListenerToVendorSelect();</script>";
+        // Print separator
+        self::printHorizontalSeparator();
+
+        // Print sugested search terms for given software's vendor and product names
+        self::printSugestedSearchTerms($vendor_GLPI_name, $product_GLPI_name);
+
+        // Print separator
+        self::printHorizontalSeparator();
+
+        // Print form header and hidden fields
+        self::printFormHeader($action, $item->getID());
+
+        // Print form select dropdowns
+        self::printVendorAndProductDropdowns($vendors, $vendor_name, $products, $product_name);
+
+        // Print form footer, submit button and js function
+        self::printFormFooter();
     } 
 
-    private static function printVendorAndProductDropdowns($action, $itemID, $vendors, $selected_vendor, $products, $selected_product) {
+    /**
+     * Display horizontal ruler
+     *
+     * @since 1.0.0
+     *
+     * @return void
+     */
+    private static function printHorizontalSeparator() {
 
+        $out = '<div class="nvd_cpe_div horizontal_ruler"></div>';
+
+        echo $out;
+    }
+
+    /**
+     * Display current cpe vendor and product names associated with given software
+     *
+     * @since 1.0.0
+     *
+     * @param array     $vendor            Current CPE vendor name associated with given software
+     * @param array     $product           Current CPE product name associated with given software
+     *
+     * @return void
+     */
+    private static function printCurrentCPEAssociation($vendor, $product) {
+
+        $out =  '<div class="nvd_cpe_div">';
+        $out .= '<div class="nvd_cpe_row">';
+        $out .= '<div><b class="nvd_cpe_title">' . __('Current CPE Name:') . '</b></div></div>';
+        $out .= '<div class="nvd_cpe_row">';
+        $out .= '<div><b class="nvd_cpe_name"'; 
+
+        if ($vendor!=NULL) {
+
+            $CPE = new PluginNvdCpe();
+            $CPE->set_CPE_attributes([CPE_PART => 'a', CPE_VENDOR => $vendor, CPE_PRODUCT => $product]);
+            $CPEName = $CPE->get_CPE_WFN();
+
+            $out .= ">$CPEName</b>";
+
+        } else {
+            $out .= ' style="color:red"><u>' . __('NOT ASSIGNED YET') . '</u></b>';
+        }
+
+        $out .= '</div></div></div>';
+
+        echo $out;
+    }
+
+    /**
+     * Display sugested search terms for given software's CPE vendor and product names
+     * 
+     * Takes the software's manufacturer and software names stored by GLPI and leaves 
+     * only the most relevant parts, displayed from longest to shortest as sugestions
+     * to the user to use as search terms for the vendor and product dropdowns.
+     *
+     * @since 1.0.0
+     *
+     * @param string    $vendor_name    GLPI stored manufacturer name for given software
+     * @param string    $product_name   GLPI stored software name for given software
+     *
+     * @return void
+     */
+    private static function printSugestedSearchTerms($vendor_name, $product_name) {
+
+        // Get sugested vendor search terms for given software
+        $sugested_vendor_terms  = PluginNvdCpe::getVendorSugestedSearchTerms($vendor_name);
+
+        // Get sugested product search terms for given software
+        $sugested_product_terms = PluginNvdCpe::getProductSugestedSearchTerms($product_name, $sugested_vendor_terms);
+
+        $out =  '<div class="nvd_cpe_div">';
+
+        // Vendor terms
+        $out .= '<div class="nvd_cpe_collumn">';
+        $out .= '<div class="nvd_cpe_row">';
+        $out .= '<div><b class="nvd_cpe_title">' . __('Sugested vendor terms: ') . '</b></div></div>';
+        $out .= '<div class="nvd_cpe_row">';
+        $out .= '<div>' . implode(' ', $sugested_vendor_terms) . '</div></div></div>';
+
+        // Vertical separator
+        $out .= '<div class="vertical_ruler"></div>';
+
+        // Product terms
+        $out .= '<div class="nvd_cpe_collumn">';
+        $out .= '<div class="nvd_cpe_row">';
+        $out .= '<div><b class="nvd_cpe_title">' . __('Sugested product terms: ') . '</b></div></div>';
+        $out .= '<div class="nvd_cpe_row">';
+        $out .= '<div>' . implode(' ', $sugested_product_terms) . '</div></div></div></div>';
+
+        echo $out;
+    }
+
+    /**
+     * Print form header and hidden fields
+     *
+     * @since 1.0.0
+     *
+     * @param array     $action     Action to perform on DB (isnert | update)
+     * @param int       $ItemID     Software item ID
+     *
+     * @return void
+     */
+    private static function printFormHeader($action, $ItemID) {
+
+        // Hidden form fields: _glpi_csrf_token | action (insert or update) | softwares_id
         $out =  '<form action="../plugins/nvd/front/softwarecpe.form.php" method="POST">';
         $out .= Html::hidden('_glpi_csrf_token', array('value' => Session::getNewCSRFToken()));
         $out .= Html::hidden('action', array('value' => $action));
-        $out .= Html::hidden('softwares_id', array('value' => $itemID));
+        $out .= Html::hidden('softwares_id', array('value' => $ItemID));
 
-        $out .= '<div class="nve_cpe_dropdown_div">';
+        echo $out;
+    }
 
-        $out .= '<div class="nvd_cpe_dropdowns_collumn">';
-        $out .= '<div class="nvd_cpe_dropdowns_row">';
-        $out .= '<div><b class="nvd_cpe_dropdown_title">' . __('Available Vendors: ') . '</b></div></div>';
-        $out .= '<div class="nvd_cpe_dropdowns_row">';
+    /**
+     * Display form selectors for vendor and product
+     *
+     * @since 1.0.0
+     *
+     * @param array     $vendors            List of available vendors retrieved from CVE API
+     * @param string    $selected_vendor    Assigned vendor for given software | NULL if none is assigned
+     * @param array     $products           List of available products for a specific vendor retrieved from CVE API
+     * @param string    $selected_product   Assigned product for given software | NULL if none is assigned
+     *
+     * @return void
+     */
+    private static function printVendorAndProductDropdowns($vendors, $selected_vendor, $products, $selected_product) {
+
+        $out =  '<div class="nvd_cpe_div">';
+
+        // Vendor dropdown
+        $out .= '<div class="nvd_cpe_collumn">';
+        $out .= '<div class="nvd_cpe_row">';
+        $out .= '<div><b class="nvd_cpe_title">' . __('Available Vendors: ') . '</b></div></div>';
+        $out .= '<div class="nvd_cpe_row">';
         $out .= '<div><select name="vendor" id="nvd_cpe_vendor_dropdown" class="nvd_cpe_dropdown" required>';
         $out .= '<option disabled ' . (($selected_vendor==NULL) ? 'selected ' : '') . ' value>-- ' . __('SELECT A VENDOR') . ' --</option>';
         foreach ($vendors as $vendor) {
@@ -143,12 +283,14 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         }
         $out .= '</select></div></div></div>';
 
-        $out .= '<div class="nvd_cpe_dropdowns_collumn vertical_ruler"></div>';
+        // Vertical separator
+        $out .= '<div class="vertical_ruler"></div>';
 
-        $out .= '<div class="nvd_cpe_dropdowns_collumn">';
-        $out .= '<div class="nvd_cpe_dropdowns_row">';
-        $out .= '<div><b class="nvd_cpe_dropdown_title">' . __('Available Products:') . '</b></div></div>';
-        $out .= '<div class="nvd_cpe_dropdowns_row">';
+        // Product dropdown
+        $out .= '<div class="nvd_cpe_collumn">';
+        $out .= '<div class="nvd_cpe_row">';
+        $out .= '<div><b class="nvd_cpe_title">' . __('Available Products:') . '</b></div></div>';
+        $out .= '<div class="nvd_cpe_row">';
         $out .= '<div><select name="product" id="nvd_cpe_product_dropdown" class="nvd_cpe_dropdown" required>';
         $out .= '<option disabled ' . (($selected_product==NULL) ? 'selected ' : '') . ' value>-- ' . __('SELECT A PRODUCT') . ' --</option>';
         foreach ($products as $product) {
@@ -157,19 +299,27 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         }
         $out .= '</select></div></div></div></div>';
 
-        $out .= '<br><div class="nve_cpe_dropdown_div">';
-        $out .= '<input type="submit" value="' . __('Update CPE Associations') . '">';
-        $out .= '</div></form>';
-
-        echo "$out<br>";
+        echo $out;
     }
 
-    private static function prueba() {
+    /**
+     * Print form footer, submit button and javascript function
+     *
+     * @since 1.0.0
+     *
+     * @return void
+     */
+    private static function printFormFooter() {
 
-        $name = "Una Compania Corporation eso nombre extra grandeeeeeeeee";
+        // Submit button
+        $out =  '<div class="nvd_cpe_div">';
+        $out .= '<input class="button" type="submit" value="' . __('Update CPE Associations') . '">';
+        $out .= '</div></form>';
 
+        // Javascript event listener
+        $out .= '<script>addEventListenerToVendorSelect();</script>';
 
-        print_r(PluginNvdCpe::getVendorSugestedSearchTerms($name));
+        echo $out;
     }
 }
 
