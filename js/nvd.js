@@ -11,7 +11,7 @@ function addEventListenerToVendorSelect(server) {
             if(this.readyState == 4 && this.status == 200){
                var response = JSON.parse(this.responseText);
 
-               var out = "";
+               var out = `<option disabled selected value>-- ` + __(`SELECT A PRODUCT`) + ` --</option>`;
 
                for (product of response){
                 out += `<option value="${product}">${product}</option>`;
@@ -21,7 +21,7 @@ function addEventListenerToVendorSelect(server) {
             }
         }
 
-        script_url = window.location.origin + "/glpi/plugins/nvd/front/vendor.form.php?vendor=" + vendor;
+        script_url = window.location.origin + "/glpi/plugins/nvd/front/softwarecpe.form.php?vendor=" + vendor;
         http.open('GET', script_url);
         http.send();
     });

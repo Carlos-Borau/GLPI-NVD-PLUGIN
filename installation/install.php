@@ -51,7 +51,7 @@ function pluginNvdCreateTables(){
 
         $query = "CREATE TABLE `glpi_plugin_nvd_vulnerabilities` (
                     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-                    `cve_id` VARCHAR(16),
+                    `cve_id` VARCHAR(16) UNIQUE,
                     `description` VARCHAR(1024),
                     `severity` VARCHAR(16),
                     `base_score` FLOAT(24),
@@ -96,7 +96,7 @@ function pluginNvdCreateTables(){
 
         $query = "CREATE TABLE `glpi_plugin_nvd_cpe_software_associations` (
                     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-                    `softwares_id` INT UNSIGNED NOT NULL,
+                    `softwares_id` INT UNSIGNED NOT NULL UNIQUE,
                     `vendor_name` VARCHAR(255),
                     `product_name` VARCHAR(255),
                     PRIMARY KEY (`id`)

@@ -71,16 +71,28 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
                                 'FROM' => 'glpi_plugin_nvd_cpe_software_associations',
                                 'WHERE' => ['softwares_id' => $item->getID()]]);
 
+        $action = 'insert';
         $vendor_name = NULL;
         $product_name = NULL;
-        $vendor_search_name = NULL;
-        $product_search_name = NULL;
+        $vendor_GLPI_name = NULL;
+        $product_GLPI_name = NULL;
+
+        $CVEConn = new PluginNvdCveconnection();
+        $output = json_decode($CVEConn->launchRequest(), true);
+        $vendors = $output['vendor'];
+        $products = [];
 
         if ($res->numrows() > 0) {
+
+            $action = 'update';
 
             $row = $res->current();
             $vendor_name = $row['vendor_name'];
             $product_name = $row['product_name'];
+
+            $CVEConn = new PluginNvdCveconnection($vendor_name);
+            $output = json_decode($CVEConn->launchRequest(), true);
+            $products = $output['product'];
 
         } else {
 
@@ -101,40 +113,33 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
 
             $row = $res->current();
 
-            $vendor_search_name = $row['vendor'];
-            $product_search_name = $row['product'];
+            $vendor_GLPI_name = $row['vendor'];
+            $product_GLPI_name = $row['product'];
         }
         
-        $CVEConn = new PluginNvdCveconnection();
-
-        $output = json_decode($CVEConn->launchRequest(), true);
-
-        $vendors = $output['vendor'];
-
-        #print_r($vendors);
-
-        // echo "Vendor name: $vendor_name<br>";
-        // echo "Product name: $product_name<br>";
-        // echo "Vendor name: $vendor_search_name<br>";
-        // echo "Product name: $product_search_name<br>";
-
-        self::printVendorAndProductDropdowns($vendors);
+        self::printVendorAndProductDropdowns($action, $item->getID(), $vendors, $vendor_name, $products, $product_name);
 
         echo "<script>addEventListenerToVendorSelect();</script>";
     } 
 
-    private static function printVendorAndProductDropdowns($vendors, $products = []) {
+    private static function printVendorAndProductDropdowns($action, $itemID, $vendors, $selected_vendor, $products, $selected_product) {
 
-        $out =  '<div class="nve_cpe_dropdown_div">';
+        $out =  '<form action="../plugins/nvd/front/softwarecpe.form.php" method="POST">';
+        $out .= Html::hidden('_glpi_csrf_token', array('value' => Session::getNewCSRFToken()));
+        $out .= Html::hidden('action', array('value' => $action));
+        $out .= Html::hidden('softwares_id', array('value' => $itemID));
+
+        $out .= '<div class="nve_cpe_dropdown_div">';
 
         $out .= '<div class="nvd_cpe_dropdowns_collumn">';
         $out .= '<div class="nvd_cpe_dropdowns_row">';
         $out .= '<div><b class="nvd_cpe_dropdown_title">' . __('Available Vendors: ') . '</b></div></div>';
         $out .= '<div class="nvd_cpe_dropdowns_row">';
-        $out .= '<div><select name="nvd_cpe_vendor_dropdown" id="nvd_cpe_vendor_dropdown" class="nvd_cpe_dropdown">';
+        $out .= '<div><select name="vendor" id="nvd_cpe_vendor_dropdown" class="nvd_cpe_dropdown" required>';
+        $out .= '<option disabled ' . (($selected_vendor==NULL) ? 'selected ' : '') . ' value>-- ' . __('SELECT A VENDOR') . ' --</option>';
         foreach ($vendors as $vendor) {
 
-            $out .= "<option value=\"$vendor\">$vendor</option>";
+            $out .= '<option ' . (($selected_vendor==$vendor) ? 'selected ' : '') . "value=\"$vendor\">$vendor</option>";
         }
         $out .= '</select></div></div></div>';
 
@@ -144,12 +149,17 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         $out .= '<div class="nvd_cpe_dropdowns_row">';
         $out .= '<div><b class="nvd_cpe_dropdown_title">' . __('Available Products:') . '</b></div></div>';
         $out .= '<div class="nvd_cpe_dropdowns_row">';
-        $out .= '<div><select name="nvd_cpe_product_dropdown" id="nvd_cpe_product_dropdown" class="nvd_cpe_dropdown">';
+        $out .= '<div><select name="product" id="nvd_cpe_product_dropdown" class="nvd_cpe_dropdown" required>';
+        $out .= '<option disabled ' . (($selected_product==NULL) ? 'selected ' : '') . ' value>-- ' . __('SELECT A PRODUCT') . ' --</option>';
         foreach ($products as $product) {
 
-            $out .= "<option value=\"$product\">$product</option>";
+            $out .= '<option ' . (($selected_product==$product) ? 'selected ' : '') . "value=\"$product\">$product</option>";
         }
         $out .= '</select></div></div></div></div>';
+
+        $out .= '<br><div class="nve_cpe_dropdown_div">';
+        $out .= '<input type="submit" value="' . __('Update CPE Associations') . '">';
+        $out .= '</div></form>';
 
         echo "$out<br>";
     }

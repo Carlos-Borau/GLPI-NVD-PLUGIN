@@ -3,40 +3,40 @@
 class PluginNvdVuln extends CommonDBTM {
 
     /**
-    * Check if can view item
-    *
-    * @since 1.0.0
-    *
-    * @return boolean
-    */
+     * Check if can view item
+     *
+     * @since 1.0.0
+     *
+     * @return boolean
+     */
     static function canView() {
         
         return Config::canView();
     }
 
     /**
-    * Get tab name for displayed item
-    *
-    * @since 1.0.0
-    *
-    * @return boolean
-    */
+     * Get tab name for displayed item
+     *
+     * @since 1.0.0
+     *
+     * @return boolean
+     */
     function getTabNameForItem(CommonGLPI $item, $withtemplate=0) {
 
         return self::createTabEntry(__('Vulnerabilities'));
     }
 
     /**
-    * Display tab content for given item
-    *
-    * @since 1.0.0
-    *
-    * @param CommonGLPI $item       Item for which to display vulnerabilities
-    * @param int $tabnum
-    * @param int $withtemplate
-    *
-    * @return boolean
-    */
+     * Display tab content for given item
+     *
+     * @since 1.0.0
+     *
+     * @param CommonGLPI $item       Item for which to display vulnerabilities
+     * @param int $tabnum
+     * @param int $withtemplate
+     *
+     * @return boolean
+     */
     static function displayTabContentForItem(CommonGLPI $item, $tabnum=1, $withtemplate=0) {
 
         switch($item::getType()) {
@@ -61,14 +61,14 @@ class PluginNvdVuln extends CommonDBTM {
     }
 
     /**
-    * Display tab content for given Software item
-    *
-    * @since 1.0.0
-    *
-    * @param Software $item       Software item for which to display vulnerabilities
-    *
-    * @return void
-    */
+     * Display tab content for given Software item
+     *
+     * @since 1.0.0
+     *
+     * @param Software $item       Software item for which to display vulnerabilities
+     *
+     * @return void
+     */
     private static function displayForSoftware(Software $item) {
 
         global $DB;
@@ -107,14 +107,14 @@ class PluginNvdVuln extends CommonDBTM {
     }
 
     /**
-    * Display tab content for given Device item
-    *
-    * @since 1.0.0
-    *
-    * @param CommonGLPI $item       Device item for which to display vulnerabilities
-    *
-    * @return void
-    */
+     * Display tab content for given Device item
+     *
+     * @since 1.0.0
+     *
+     * @param CommonGLPI $item       Device item for which to display vulnerabilities
+     *
+     * @return void
+     */
     private static function displayForDevice(CommonGLPI $item) {
 
         global $DB, $CFG_GLPI;
@@ -179,12 +179,12 @@ class PluginNvdVuln extends CommonDBTM {
     }
 
     /**
-    * Display tab content on central dashboard
-    *
-    * @since 1.0.0
-    *
-    * @return void
-    */
+     * Display tab content on central dashboard
+     *
+     * @since 1.0.0
+     *
+     * @return void
+     */
     private static function displayForDashboard(){
 
         global $DB, $CFG_GLPI;
@@ -262,14 +262,14 @@ class PluginNvdVuln extends CommonDBTM {
     }
 
     /**
-    * Request list of vulnerabilities for the given item
-    *
-    * @since 1.0.0
-    *
-    * @param array $vulnerabilityIDs       IDs of vulnerabilities to query
-    *
-    * @return DBmysqlIterator
-    */
+     * Request list of vulnerabilities for the given item
+     *
+     * @since 1.0.0
+     *
+     * @param array $vulnerabilityIDs       IDs of vulnerabilities to query
+     *
+     * @return DBmysqlIterator
+     */
     private static function requestVulnerabilities($vulnerabilityIDs) {
 
         global $DB;
@@ -290,16 +290,16 @@ class PluginNvdVuln extends CommonDBTM {
     }
 
     /**
-    * Display list of vulnerabilities for the given item
-    *
-    * @since 1.0.0
-    *
-    * @param array $DBQueryResult       Result of the CVE query
-    * @param array $vulnerableInstances Array of vulnerability IDs and their instances
-    * @param bool $is_software          Whether or not to treat the instances as software versions or programs 
-    *
-    * @return void
-    */
+     * Display list of vulnerabilities for the given item
+     *
+     * @since 1.0.0
+     *
+     * @param array $DBQueryResult       Result of the CVE query
+     * @param array $vulnerableInstances Array of vulnerability IDs and their instances
+     * @param bool $is_software          Whether or not to treat the instances as software versions or programs 
+     *
+     * @return void
+     */
     private static function displayVulnerabilityList($DBQueryResult, $vulnerableInstances, $instance_name) {
 
         $table =    '<table class="center">';
@@ -329,24 +329,6 @@ class PluginNvdVuln extends CommonDBTM {
 
         echo $table;
     }
-
-    /*
-    $out =      "<form action=\"../plugins/nvd/front/vuln.form.php\" method=\"POST\">";
-    $out .=     Html::hidden('_glpi_csrf_token', array('value' => Session::getNewCSRFToken()));
-    $out .=     "<label for=\"part\">Part:</label>";
-    $out .=     "<select id=\"part\" name=\"part\" required>";
-    $out .=     "<option disabled selected value> -- select an option -- </option>";
-    $out .=     "<option value=\"a\">a (Application)</option>";
-    $out .=     "<option value=\"o\">o (Operating System)</option>";
-    $out .=     "<option value=\"h\">h (Hardware)</option>";
-    $out .=     "</select><br>";
-    $out .=     "Vendor: <input type=\"text\" name=\"vendor\" required><br>";
-    $out .=     "Product: <input type=\"text\" name=\"product\" required><br>";
-    $out .=     "Version: <input type=\"text\" name=\"version\" required><br>";
-
-    $out .=     "<input type=\"submit\">";
-    $out .=     "</form>";
-
-    echo $out;
-    */
 }
+
+?>
