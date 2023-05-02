@@ -3,7 +3,7 @@
 class PluginNvdConnection {
 
     private string $baseRequestUrl;
-    private array $urlHeaders;
+    private array $requestHeaders;
     private array $urlParams;
 
     /**
@@ -16,7 +16,7 @@ class PluginNvdConnection {
     public function __construct($baseRequestUrl) {
 
         $this->baseRequestUrl = $baseRequestUrl;
-        $this->urlHeaders = array();
+        $this->requestHeaders = array();
         $this->urlParams = array();
     }
 
@@ -45,10 +45,10 @@ class PluginNvdConnection {
      * 
      * @return void 
      */
-    public function setUrlHeaders(array $headers) {
+    public function setRequestHeaders(array $headers) {
 
         foreach ($headers as $header => $value) {
-            $this->UrlHeaders[$header] = $value; 
+            $this->requestHeaders[$header] = $value; 
         }
     }
 
@@ -68,7 +68,7 @@ class PluginNvdConnection {
             $completeUrl .= '?';
 
             foreach ($this->urlParams as $parameter => $value) {
-                $completeUrl .= $param . (($value != Null) ? "=$value&" : '&');
+                $completeUrl .= $parameter . (($value != Null) ? '=' . urlencode($value) . '&' : '&');
             }
 
             $completeUrl = rtrim($completeUrl, "&");
@@ -87,7 +87,7 @@ class PluginNvdConnection {
 
         $headers = array();
 
-        foreach ($this->urlHeaders as $header => $value) {
+        foreach ($this->requestHeaders as $header => $value) {
             $headers[] = "$header:$value";
         }
 

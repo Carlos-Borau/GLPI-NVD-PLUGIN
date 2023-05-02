@@ -3,44 +3,43 @@
 class PluginNvdSoftwarecpe extends CommonDBTM {
 
     /**
-    * Check if can view item
-    *
-    * @since 1.0.0
-    *
-    * @return boolean
-    */
+     * Check if can view item
+     *
+     * @since 1.0.0
+     *
+     * @return boolean
+     */
     static function canView() {
         
         return Config::canView();
     }
 
     /**
-    * Get tab name for displayed item
-    *
-    * @since 1.0.0
-    *
-    * @return boolean
-    */
+     * Get tab name for displayed item
+     *
+     * @since 1.0.0
+     *
+     * @return boolean
+     */
     function getTabNameForItem(CommonGLPI $item, $withtemplate=0) {
 
         return self::createTabEntry(__('CPE Association'));
     }
 
     /**
-    * Display tab content for given Software
-    *
-    * @since 1.0.0
-    *
-    * @param CommonGLPI $item       Software for which to display the CPE association
-    * @param int $tabnum
-    * @param int $withtemplate
-    *
-    * @return boolean
-    */
+     * Display tab content for given Software
+     *
+     * @since 1.0.0
+     *
+     * @param CommonGLPI $item       Software for which to display the CPE association
+     * @param int $tabnum
+     * @param int $withtemplate
+     *
+     * @return boolean
+     */
     static function displayTabContentForItem(CommonGLPI $item, $tabnum=1, $withtemplate=0) {
 
         if ($item::getType() === Software::getType()) {
-            // self::prueba();
             self::displayForSoftware($item);
         }
         

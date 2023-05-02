@@ -17,8 +17,6 @@ function plugin_init_nvd() {
 
    $PLUGIN_HOOKS['csrf_compliant']['nvd'] = true;
 
-   Plugin::registerClass(PluginNvdNvd::class);
-
    Plugin::registerClass(PluginNvdConfig::class, ['addtabon' => 
       [Config::class
    ]]);
@@ -37,6 +35,10 @@ function plugin_init_nvd() {
    Plugin::registerClass(PluginNvdConnection::class);
    Plugin::registerClass(PluginNvdNvdconnection::class);
    Plugin::registerClass(PluginNvdCpeconnection::class);
+
+   Plugin::registerClass(PluginNvdUpdatevuln::class, ['addtabon' =>
+      [Central::class
+   ]]);
 
    $PLUGIN_HOOKS[Hooks::ADD_JAVASCRIPT]['nvd'] = 'js/nvd.js';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['nvd'] = 'css/nvd.css';

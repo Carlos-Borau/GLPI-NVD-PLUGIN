@@ -74,6 +74,12 @@ function insertSoftwareCPENames($softwares_id, $vendor, $product) {
 
     global $DB;
 
+    /***********************************************************************************************
+     * Create CPE vendor and product name association for given software
+     * 
+     *  INSERT INTO glpi_plugin_nvd_cpe_software_associations 
+     *  (softwares_id, vendor_name, product_name) VALUES ($softwares_id, $vendor, $product)
+     **********************************************************************************************/
     $DB->insert(
         'glpi_plugin_nvd_cpe_software_associations', [
             'softwares_id' => $softwares_id,
@@ -87,6 +93,13 @@ function updateSoftwareCPENames($softwares_id, $vendor, $product) {
 
     global $DB;
 
+    /***********************************************************************************************
+     * Update CPE vendor and product name association for given software
+     * 
+     *  UPDATE glpi_plugin_nvd_cpe_software_associations 
+     *  SET vendor_name = $softwares_id, product_name = $product
+     *  WHERE softwares_id = $softwares_id
+     **********************************************************************************************/
     $DB->update(
         'glpi_plugin_nvd_cpe_software_associations', [
             'vendor_name' => $vendor,

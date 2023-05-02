@@ -15,7 +15,7 @@ function pluginNvdInstall(){
 
     pluginNvdCreateTables();
 
-    pluginNvdRegisterTasks();
+    //pluginNvdRegisterTasks();
 }
 
 /**
@@ -115,7 +115,7 @@ function pluginNvdCreateTables(){
     if(!$DB->tableExists('glpi_plugin_nvd_config')){
 
         $query = "CREATE TABLE `glpi_plugin_nvd_config` (
-                    `api_key` VARCHAR(63),
+                    `api_key` VARCHAR(63) NOT NULL,
                     `last_consult_date` VARCHAR(63),
                     PRIMARY KEY (`api_key`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
@@ -128,7 +128,7 @@ function pluginNvdCreateTables(){
  * Manages the registration of tasks required by the plugin
  *
  * Created tasks are:
- * - UpdateVulnerabilityList
+ * - UpdateVulnTask
  *
  * @since 1.0.0
  *
@@ -136,24 +136,14 @@ function pluginNvdCreateTables(){
  */
 function pluginNvdRegisterTasks(){
 
-    return true;
-}
-
-/*
-    require_once(PLUGIN_NVD_DIR . '\inc\exampletask.class.php');
+    require_once(PLUGIN_NVD_DIR . '\inc\updatevuln.class.php');
 
     $res = CronTask::Register(
-        'PluginNvdExampletask',
-        'ExampleTask',
-        (60 * 1),
-        ['comment' => 'Tarea de prueba', 'mode' => CronTask::MODE_EXTERNAL]
+        'PluginNvdUpdatevuln',
+        'UpdateVulnTask',
+        (60 * 60),
+        ['comment' => __('Task to update known vulnerabilities present on GLPI managed devices'), 'mode' => CronTask::MODE_EXTERNAL]
     );
+}
 
-
-    if($res){
-        echo 'Task creada correctamente<br>';
-    } else {
-        echo 'Task no creada<br>';
-    }
-*/
 ?>

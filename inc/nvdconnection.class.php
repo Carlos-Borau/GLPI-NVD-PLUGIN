@@ -19,7 +19,7 @@ class PluginNvdNvdconnection extends PluginNvdConnection {
      * @return void 
      */
     public function __construct() {
-        parent::__construct(baseRequestUrl);
+        parent::__construct(self::baseRequestUrl);
     }
 
     /**
