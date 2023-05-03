@@ -32,7 +32,7 @@ class PluginNvdConnection {
     public function setUrlParams(array $params) {
 
         foreach ($params as $param => $value) {
-            $this->urlParams[$param] = $value; 
+            $this->urlParams[$param] = urlencode(strval($value)); 
         }
     }
 
@@ -68,11 +68,12 @@ class PluginNvdConnection {
             $completeUrl .= '?';
 
             foreach ($this->urlParams as $parameter => $value) {
-                $completeUrl .= $parameter . (($value != Null) ? '=' . urlencode($value) . '&' : '&');
+                $completeUrl .= $parameter . (($value != Null) ? "=$value&" : '&');
             }
 
             $completeUrl = rtrim($completeUrl, "&");
         }
+
         return $completeUrl;
     }
 
@@ -101,7 +102,7 @@ class PluginNvdConnection {
      * 
      * @return string   request output
      */
-    public function launchRequest() {
+    public function launchRequest($removeNotJson = false) {
 
         $fullUrl    = $this->getCompleteUrl();
         $headers    = $this->getRequestHeaders();
@@ -119,7 +120,13 @@ class PluginNvdConnection {
 
         curl_close($ch);
 
-        return $output;
+        if ($removeNotJson) {
+            preg_match('/(?<json>\{.*\})/', $output, $output);
+
+            return (isset($output['json'])) ? json_decode($output['json'], true) : [];
+        }
+
+        return json_decode($output, true);
     }
 }
 

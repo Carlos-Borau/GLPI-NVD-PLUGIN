@@ -60,7 +60,7 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         global $DB, $CFG_GLPI;
 
         $CVEConn = new PluginNvdCveconnection();
-        $output = json_decode($CVEConn->launchRequest(), true);
+        $output = $CVEConn->launchRequest();
 
         $vendors = $output['vendor'];
         $products = [];
@@ -92,7 +92,7 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
 
             // Get list of products from MITRE CVE API for associated vendor
             $CVEConn = new PluginNvdCveconnection($vendor_name);
-            $output = json_decode($CVEConn->launchRequest(), true);
+            $output = $CVEConn->launchRequest();
 
             $products = $output['product'];
         } 

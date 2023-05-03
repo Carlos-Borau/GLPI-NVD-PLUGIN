@@ -13,7 +13,7 @@ if (isset($_GET['vendor'])) {
 
     $vendor = $_GET['vendor'];
     
-    $output = json_decode(getProductsForVendor($vendor), true);
+    $output = getProductsForVendor($vendor);
 
     $products = $output['product'];
 

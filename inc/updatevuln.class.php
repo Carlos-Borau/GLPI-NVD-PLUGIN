@@ -42,7 +42,6 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         if ($item::getType() === Central::getType()) {
             
             self::cronUpdateVulnTask();
-
         }
         
         return true;
@@ -83,6 +82,9 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         // If no API Key is set the task can't proceed
         if ($apiKey == NULL) { return false; }
 
+        // Get GLPI default language
+        $language = self::getGLPILanguage();
+
         // Request all software versions installed on any device
         $allVersions = self::requestAllSoftwareInstallations();
 
@@ -97,6 +99,8 @@ class PluginNvdUpdatevuln extends CommonGLPI {
 
         // Get every CPE vendor and product name associations
         [$vendors, $products] = self::getAllSoftwareCPEAssociations();
+
+        $allVersions = [446];
 
         // For each installed verion look for vulnerabilities
         foreach ($allVersions as $version_id) {
@@ -123,22 +127,107 @@ class PluginNvdUpdatevuln extends CommonGLPI {
                 // Get known CVEs associated with a particular version
                 $version_CVEs = self::getSoftwareVersionCVEs($version_id);
 
-                // Configure connection to NVD API
-                $NVD_Connection = new PluginNvdNvdconnection();
-                $NVD_Connection->setUrlParams([
-                    CPE_NAME => $CPE_Name,
-                    VULNERABLE => NULL
-                ]);
-                $NVD_Connection->setRequestHeaders([
-                    API_KEY => $apiKey
-                ]);
+                // Get CVE records for given software version
+                $CVE_Records = self::retrieveCVERecords($CPE_Name, $apiKey);
 
-                // Get CVE reccords from NVD
-                $response = json_decode($NVD_Connection->launchRequest(), true);
+                // CVE IDs retrieved from NVD
+                $NVD_CVEs = array_keys($CVE_Records);
+
+                // Missing references to known vulnerabilities
+                $missingVulnerabilities = array_diff($NVD_CVEs, $CVEs);
+
+                // Create records in GLPI database for new vulnerabilities
+                self::insertNewVulnerabilities($missingVulnerabilities, $CVE_Records, $language);
+
+                // Missing references to known vulnerabilities for software version
+                $missingVersionVulnerabilities = array_diff($NVD_CVEs, $version_CVEs);
+
+                // Create associations in GLPI database between software version and known vulnerabilities
+                self::insertNewVersionVulnerabilities($missingVersionVulnerabilities, $version_id);
+                return;
             } 
         }
 
         return true;
+    }
+
+    /**
+     * Retrieve CVE records from NVD database
+     * 
+     * @since 1.0.0
+     * 
+     * @param string    $CPE_Name CPE name for software version
+     * @param string    $apiKey Key for NVD API
+     * 
+     * @return array    Array values
+     */
+    private static function retrieveCVERecords($CPE_Name, $apiKey) {
+
+        // Configure connection to NVD API
+        $NVD_Connection = new PluginNvdNvdconnection();
+        $NVD_Connection->setUrlParams([
+            CPE_NAME => $CPE_Name,
+            VULNERABLE => NULL
+        ]);
+        $NVD_Connection->setRequestHeaders([
+            API_KEY => $apiKey
+        ]);
+
+        $processedRecords = 0;
+        $CVE_Records = [];
+
+        // When too many records are present they must be retrieved through multiple requests
+        do {
+            // Set page index
+            $NVD_Connection->setUrlParams([START_INDEX => $processedRecords]);
+
+            // Get CVE records from NVD
+            $records = $NVD_Connection->launchRequest(true);
+
+            // Number of total results
+            $totalResults = $records['totalResults'];
+
+            // Number of CVE records retrieved for this page
+            $resultsPerPage = $records['resultsPerPage'];
+
+            // Vulnerabilities retrieved for this page
+            $vulnerabilities = $records['vulnerabilities'];
+
+            foreach ($vulnerabilities as $vulnerability) {
+
+                $record = $vulnerability['cve'];
+
+                // CVE ID
+                $CVE_ID = $record['id'];
+
+                // Description(s)
+                $descriptions = [];
+        
+                foreach($record['descriptions'] as $description){
+                    $descriptions[$description['lang']] = $description['value'];
+                }
+
+                // CVSS Metrics
+                $main_metrics = array_values($record['metrics'])[0][0];
+
+                // Vulnerability scores
+                $base_score     = $main_metrics['cvssData']['baseScore'];
+                $exploit_score  = $main_metrics['exploitabilityScore'];
+                $impact_score   = $main_metrics['impactScore'];
+
+                $CVE_Records[$CVE_ID] = array(
+                    'descriptions' => $descriptions,
+                    'base_score' => $base_score,
+                    'exploitability_score' => $exploit_score,
+                    'impact_score' => $impact_score
+                );
+            }
+
+            $processedRecords += $resultsPerPage;
+
+        } while ($processedRecords < $totalResults);
+
+        return $CVE_Records;
     }
 
     /**
@@ -179,6 +268,12 @@ class PluginNvdUpdatevuln extends CommonGLPI {
 
         global $DB;
 
+        /***********************************************************************************************
+         * Request api key from glpi configuration
+         * 
+         *  SELECT api_key
+         *  FROM glpi_plugin_nvd_config 
+         **********************************************************************************************/
         $res = $DB->request(['SELECT' => 'api_key',
                              'FROM' => 'glpi_plugin_nvd_config']);
 
@@ -190,6 +285,38 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         }
 
         return NULL;
+    }
+
+    /**
+     * Queries the GLPI database and returns the default language from settings
+     * 
+     * @since 1.0.0
+     * 
+     * @return string    GLPI default language
+     */
+    private static function getGLPILanguage() {
+
+        global $DB;
+
+        /***********************************************************************************************
+         * Request GLPI default language from settings
+         * 
+         *  SELECT value
+         *  FROM glpi_configs
+         *  WHERE name = language
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => 'value',
+                             'FROM' => 'glpi_configs',
+                             'WHERE' => ['name' => 'language']]);
+
+        if ($res->numrows() != 0) {
+
+            $row = $res->current();
+
+            return $row['value'];
+        }
+
+        return '';
     }
 
     /**
@@ -365,6 +492,73 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         $product_associations = self::pushResToArray($res, 'product_name', 'softwares_id');
 
         return [$vendor_associations, $product_associations];
+    }
+
+    /**
+     * Inserts new vulnerability records into the GLPI database
+     * 
+     * @since 1.0.0
+     * 
+     * @param array     $missingVulnerabilities     List of CVE IDs of vulnerabilities to insert
+     * @param array     $CVE_Records                List of CVE records
+     * 
+     * @return void
+     */
+    private static function insertNewVulnerabilities($missingVulnerabilities, $CVE_Records, $language) {
+
+        global $DB;
+
+        foreach ($missingVulnerabilities as $CVE_ID) {
+
+            $CVE_Record = $CVE_Records[$CVE_ID];
+
+            // Vulnerability description
+            $description = PluginNvdCverecord::getDescriptionForLanguage($CVE_Record['descriptions'], $language);
+
+            // Vulnerability base score
+            $base_score = $CVE_Record['base_score'];
+
+            // Vulnerability exploitability score
+            $exploitability_score = $CVE_Record['exploitability_score'];
+
+            // Vulnerability impact score
+            $impact_score = $CVE_Record['impact_score'];
+
+            // Vulnerability severity
+            $severity = PluginNvdCverecord::getCvssScoreSeverity($base_score);
+
+            /***********************************************************************************************
+             * Request software ID and version number of a software version
+             * 
+             *  INSERT INTO glpi_plugin_nvd_vulnerabilities
+             *  (cve_id, description, severity, base_score, exploitability_score, impact_score)
+             *  VALUES ($CVE_ID, $description, $severity, $base_score, $exploitability_score, $impact_score)
+             **********************************************************************************************/
+            $DB->insert(
+                'glpi_plugin_nvd_vulnerabilities', [
+                    'cve_id' => $CVE_ID,
+                    'description' => $description,
+                    'severity' => $severity,
+                    'base_score' => $base_score,
+                    'exploitability_score' => $exploitability_score,
+                    'impact_score' => $impact_score
+                ]
+            );
+        }
+    }
+
+    /**
+     * Inserts new associations between a software version and known vulnerabilities into the GLPI database
+     * 
+     * @since 1.0.0
+     * 
+     * @param array     $missingVersionVulnerabilities      List of CVE IDs to associate to a given version
+     * @param int       $version_id                         ID of the software version
+     * 
+     * @return void
+     */
+    private static function insertNewVersionVulnerabilities($missingVersionVulnerabilities, $version_id) {
+
     }
 }
 

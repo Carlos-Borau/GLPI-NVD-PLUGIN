@@ -317,7 +317,7 @@ class PluginNvdVuln extends CommonDBTM {
             $table .= '<tr>';
             $table .= '<td>' . $row['severity'] . '</td>';
             $table .= '<td>' . $row['base_score'] . '</td>';
-            $table .= '<td> <a href="' . PluginNvdNvdconnection::getCveNvdUrl($row['cve_id']) . '">' . $row['cve_id'] . '</a></td>';
+            $table .= '<td> <a href="' . PluginNvdCverecord::getCveNvdUrl($row['cve_id']) . '">' . $row['cve_id'] . '</a></td>';
             $table .= '<td>' . $row['description'] . '</td>';
             $table .= '<td>';
             $table .= $vulnerableInstances[$id];
