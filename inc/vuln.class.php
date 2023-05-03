@@ -272,6 +272,8 @@ class PluginNvdVuln extends CommonDBTM {
      */
     private static function requestVulnerabilities($vulnerabilityIDs) {
 
+        if (!$vulnerabilityIDs) { return []; }
+
         global $DB;
 
         /***********************************************************************************************
@@ -315,10 +317,10 @@ class PluginNvdVuln extends CommonDBTM {
         foreach ($DBQueryResult as $id => $row) {
 
             $table .= '<tr>';
-            $table .= '<td>' . $row['severity'] . '</td>';
+            $table .= '<td>' . PluginNvdCverecord::getCvssScoreSeverity($row['base_score']) . '</td>';
             $table .= '<td>' . $row['base_score'] . '</td>';
             $table .= '<td> <a href="' . PluginNvdCverecord::getCveNvdUrl($row['cve_id']) . '">' . $row['cve_id'] . '</a></td>';
-            $table .= '<td>' . $row['description'] . '</td>';
+            $table .= '<td>' . PluginNvdCverecord::getDescriptionForLanguage($row['description']) . '</td>';
             $table .= '<td>';
             $table .= $vulnerableInstances[$id];
             $table .= '</td>';

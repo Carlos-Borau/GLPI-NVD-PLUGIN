@@ -55,7 +55,11 @@ class PluginNvdCverecord {
      * 
      * @return string               Vulnerability description
      */
-    public static function getDescriptionForLanguage($descriptions, $language) {
+    public static function getDescriptionForLanguage($descriptions, $language=NULL) {
+
+        $language = ($language!=NULL) ? $language : self::getGLPILanguage();
+
+        $descriptions = json_decode($descriptions, true);
 
         foreach ($descriptions as $vuln_language => $description) {
 
@@ -66,6 +70,38 @@ class PluginNvdCverecord {
         }
 
         return $descriptions['en'];
+    }
+
+    /**
+     * Queries the GLPI database and returns the default language from settings
+     * 
+     * @since 1.0.0
+     * 
+     * @return string    GLPI default language
+     */
+    private static function getGLPILanguage() {
+
+        global $DB;
+
+        /***********************************************************************************************
+         * Request GLPI default language from settings
+         * 
+         *  SELECT value
+         *  FROM glpi_configs
+         *  WHERE name = language
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => 'value',
+                             'FROM' => 'glpi_configs',
+                             'WHERE' => ['name' => 'language']]);
+
+        if ($res->numrows() != 0) {
+
+            $row = $res->current();
+
+            return $row['value'];
+        }
+
+        return '';
     }
 }
 

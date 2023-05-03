@@ -82,25 +82,20 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         // If no API Key is set the task can't proceed
         if ($apiKey == NULL) { return false; }
 
-        // Get GLPI default language
-        $language = self::getGLPILanguage();
-
         // Request all software versions installed on any device
         $allVersions = self::requestAllSoftwareInstallations();
 
         // Request known vulnerable software versions 
-        $vulnVersions = self::requestAllVulnerableSoftwareVersions();
+        $vulnVersions = self::requestAllVulnerableSoftwareVersions('softwareversions_id');
 
         // Remove vulnerable versions that are no longer installed on any device
         self::removeOldVulnerableVersions($allVersions, $vulnVersions);
 
         // Get every present vulnerability CVE ID
-        $CVEs = self::getAllCVEs();
+        $CVEs = self::getKnownCVEs();
 
         // Get every CPE vendor and product name associations
         [$vendors, $products] = self::getAllSoftwareCPEAssociations();
-
-        $allVersions = [446];
 
         // For each installed verion look for vulnerabilities
         foreach ($allVersions as $version_id) {
@@ -134,18 +129,26 @@ class PluginNvdUpdatevuln extends CommonGLPI {
                 $NVD_CVEs = array_keys($CVE_Records);
 
                 // Missing references to known vulnerabilities
-                $missingVulnerabilities = array_diff($NVD_CVEs, $CVEs);
+                $missingVulnerabilities = array_diff($NVD_CVEs, array_keys($CVEs));
 
                 // Create records in GLPI database for new vulnerabilities
-                self::insertNewVulnerabilities($missingVulnerabilities, $CVE_Records, $language);
+                self::insertNewVulnerabilities($missingVulnerabilities, $CVE_Records);
+
+                // Update Known CVEs
+                $CVEs = self::getKnownCVEs();
 
                 // Missing references to known vulnerabilities for software version
                 $missingVersionVulnerabilities = array_diff($NVD_CVEs, $version_CVEs);
 
                 // Create associations in GLPI database between software version and known vulnerabilities
-                self::insertNewVersionVulnerabilities($missingVersionVulnerabilities, $version_id);
-                return;
-            } 
+                self::insertNewVersionVulnerabilities($missingVersionVulnerabilities, $version_id, $CVEs);
+            }
+
+            // CVE IDs associated with some software versions
+            $installedVulnerabilities = self::requestAllVulnerableSoftwareVersions('vuln_id');
+
+            // Remove vulnerabilities no longer present on any device managed by GLPI
+            self::removeVulnerabilities(array_values($CVEs), $installedVulnerabilities);
         }
 
         return true;
@@ -288,38 +291,6 @@ class PluginNvdUpdatevuln extends CommonGLPI {
     }
 
     /**
-     * Queries the GLPI database and returns the default language from settings
-     * 
-     * @since 1.0.0
-     * 
-     * @return string    GLPI default language
-     */
-    private static function getGLPILanguage() {
-
-        global $DB;
-
-        /***********************************************************************************************
-         * Request GLPI default language from settings
-         * 
-         *  SELECT value
-         *  FROM glpi_configs
-         *  WHERE name = language
-         **********************************************************************************************/
-        $res = $DB->request(['SELECT' => 'value',
-                             'FROM' => 'glpi_configs',
-                             'WHERE' => ['name' => 'language']]);
-
-        if ($res->numrows() != 0) {
-
-            $row = $res->current();
-
-            return $row['value'];
-        }
-
-        return '';
-    }
-
-    /**
      * Queries the GLPI database and returns the IDs of all installed software versions
      * 
      * @since 1.0.0
@@ -344,27 +315,29 @@ class PluginNvdUpdatevuln extends CommonGLPI {
     }
 
     /**
-     * Queries the GLPI database and returns the IDs of all known vulnerable software versions
+     * Queries the GLPI database and returns:
+     * -The IDs of all known vulnerable software versions if $column == 'softwareversions_id'
+     * -The IDs of all known vulnerabilities associated with some software versions if $column == 'vuln_id'
      * 
      * @since 1.0.0
      * 
-     * @return array    Array of vulnerable software versions
+     * @return array    Array of IDs
      */
-    private static function requestAllVulnerableSoftwareVersions() {
+    private static function requestAllVulnerableSoftwareVersions($column) {
 
         global $DB;
 
          /***********************************************************************************************
          * Request all known vulnerable software versions
          * 
-         *  SELECT DISTINCT softwareversions_id
+         *  SELECT DISTINCT $column
          *  FROM glpi_plugin_nvd_vulnerable_versions 
          **********************************************************************************************/
-        $res = $DB->request(['SELECT' => 'softwareversions_id',
+        $res = $DB->request(['SELECT' => $column,
                              'DISTINCT' => true,
                              'FROM' => 'glpi_plugin_nvd_vulnerable_versions']);
 
-        return self::pushResToArray($res, 'softwareversions_id');
+        return self::pushResToArray($res, $column);
     }
 
     private static function removeOldVulnerableVersions($allVersions, $vulnVersions) {
@@ -374,7 +347,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         $versionsToRemove = array_diff($vulnVersions, $allVersions);
 
         if($versionsToRemove) {
-            
+
             /***********************************************************************************************
              * Remove all vulnerable versions no longer installed on any device
              * 
@@ -452,20 +425,20 @@ class PluginNvdUpdatevuln extends CommonGLPI {
      * 
      * @return array    Array containing the CVE IDs
      */
-    private static function getAllCVEs() {
+    private static function getKnownCVEs() {
 
         global $DB;
 
         /***********************************************************************************************
-         * Request CVE IDs of all vulnerabilities present on any device managed by GLPI
+         * Request numeric IDs for every created vulnerability entry on the GLPI database
          * 
-         *  SELECT cve_id 
+         *  SELECT id, cve_id
          *  FROM glpi_plugin_nvd_vulnerabilities
          **********************************************************************************************/
-        $res = $DB->request(['SELECT' => 'cve_id',
+        $res = $DB->request(['SELECT' => ['id', 'cve_id'],
                              'FROM' => 'glpi_plugin_nvd_vulnerabilities']);
 
-        return self::pushResToArray($res, 'cve_id');
+        return self::pushResToArray($res, 'id', 'cve_id');
     }
 
     /**
@@ -502,9 +475,9 @@ class PluginNvdUpdatevuln extends CommonGLPI {
      * @param array     $missingVulnerabilities     List of CVE IDs of vulnerabilities to insert
      * @param array     $CVE_Records                List of CVE records
      * 
-     * @return void
+     * @return
      */
-    private static function insertNewVulnerabilities($missingVulnerabilities, $CVE_Records, $language) {
+    private static function insertNewVulnerabilities($missingVulnerabilities, $CVE_Records) {
 
         global $DB;
 
@@ -513,7 +486,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
             $CVE_Record = $CVE_Records[$CVE_ID];
 
             // Vulnerability description
-            $description = PluginNvdCverecord::getDescriptionForLanguage($CVE_Record['descriptions'], $language);
+            $description = json_encode($CVE_Record['descriptions']);
 
             // Vulnerability base score
             $base_score = $CVE_Record['base_score'];
@@ -524,21 +497,17 @@ class PluginNvdUpdatevuln extends CommonGLPI {
             // Vulnerability impact score
             $impact_score = $CVE_Record['impact_score'];
 
-            // Vulnerability severity
-            $severity = PluginNvdCverecord::getCvssScoreSeverity($base_score);
-
             /***********************************************************************************************
-             * Request software ID and version number of a software version
+             * Insert new vulnerability into GLPI database
              * 
              *  INSERT INTO glpi_plugin_nvd_vulnerabilities
-             *  (cve_id, description, severity, base_score, exploitability_score, impact_score)
-             *  VALUES ($CVE_ID, $description, $severity, $base_score, $exploitability_score, $impact_score)
+             *  (cve_id, description, base_score, exploitability_score, impact_score)
+             *  VALUES ($CVE_ID, $description, $base_score, $exploitability_score, $impact_score)
              **********************************************************************************************/
             $DB->insert(
                 'glpi_plugin_nvd_vulnerabilities', [
                     'cve_id' => $CVE_ID,
                     'description' => $description,
-                    'severity' => $severity,
                     'base_score' => $base_score,
                     'exploitability_score' => $exploitability_score,
                     'impact_score' => $impact_score
@@ -554,11 +523,64 @@ class PluginNvdUpdatevuln extends CommonGLPI {
      * 
      * @param array     $missingVersionVulnerabilities      List of CVE IDs to associate to a given version
      * @param int       $version_id                         ID of the software version
+     * @param array     $knownCVEs                          List of known CVE IDs with corresponding numeric IDs
      * 
      * @return void
      */
-    private static function insertNewVersionVulnerabilities($missingVersionVulnerabilities, $version_id) {
+    private static function insertNewVersionVulnerabilities($missingVersionVulnerabilities, $version_id, $knownCVEs) {
 
+        global $DB;
+
+        foreach ($missingVersionVulnerabilities as $CVE_ID) {
+
+            $vulnID = $knownCVEs[$CVE_ID];
+
+            /***********************************************************************************************
+             * Insert new vulnerable software version into GLPI database
+             * 
+             *  INSERT INTO glpi_plugin_nvd_vulnerable_versions
+             *  (vuln_id, softwareversions_id) VALUES ($vulnID, $version_id)
+             **********************************************************************************************/
+            $DB->insert(
+                'glpi_plugin_nvd_vulnerable_versions', [
+                    'vuln_id' => $vulnID,
+                    'softwareversions_id' => $version_id
+                ]
+            );
+        }
+    }
+
+    /**
+     * Removes vulnerabilities no longer present on any device managed by GLPI
+     * 
+     * @since 1.0.0
+     * 
+     * @param array     $$allVulnerabilities        List of all known vulnerability IDs 
+     * @param array     $installedVulnerabilities   List of known vulnerability IDs to be associated with any installed software version
+     * 
+     * @return void
+     */
+    private static function removeVulnerabilities($allVulnerabilities, $installedVulnerabilities){
+
+        global $DB;
+
+        // CVEs no longer installed
+        $vulnerabilitiesToRemove = array_diff($allVulnerabilities, $installedVulnerabilities);
+
+        if ($vulnerabilitiesToRemove) {
+
+            /***********************************************************************************************
+             * Remove all vulnerable versions no longer installed on any device
+             * 
+             *  DELETE FROM glpi_plugin_nvd_vulnerabilities
+             *  WHERE id IN $vulnerabilitiesToRemove
+             **********************************************************************************************/
+            $DB->delete(
+                'glpi_plugin_nvd_vulnerabilities', [
+                    'id' => $vulnerabilitiesToRemove
+                ]
+            );
+        }
     }
 }
 

@@ -24,6 +24,7 @@ function plugin_init_nvd() {
    Plugin::registerClass(PluginNvdVuln::class, ['addtabon' => 
       [Central::class,
        Computer::class,
+       Phone::class,
        Software::class
    ]]);
 
