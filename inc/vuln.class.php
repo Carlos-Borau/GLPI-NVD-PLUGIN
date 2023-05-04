@@ -23,7 +23,123 @@ class PluginNvdVuln extends CommonDBTM {
      */
     function getTabNameForItem(CommonGLPI $item, $withtemplate=0) {
 
-        return self::createTabEntry(__('Vulnerabilities'));
+        $numVulnerabilities = 0;
+        
+        switch($item::getType()) {
+
+            case Software::getType():
+
+                $numVulnerabilities = self::countForSoftware($item);
+                break;
+
+            case Computer::getType():
+            case Phone::getType():
+
+                $numVulnerabilities = self::countForDevice($item);
+                break;
+
+            default:
+
+                $numVulnerabilities = self::countForDashboard();
+        }
+        
+        return self::createTabEntry(__('Vulnerabilities'), $numVulnerabilities);
+    }
+
+    /**
+     * Count number of vulnerabilities related to a given software
+     *
+     * @since 1.0.0
+     *
+     * @param Software $item        Software item to look vulnerabilities for
+     *
+     * @return int                  Number of vulnerabilities found
+     */
+    private static function countForSoftware(Software $item) {
+
+        global $DB;
+
+        /***********************************************************************************************
+         * Request vulnerabilities to which the given software's different versions are vulnerable
+         * 
+         *  SELECT vuln_id
+         *  FROM glpi_plugin_nvd_vulnerable_versions 
+         *  INNER JOIN glpi_softwareversions 
+         *  ON glpi_plugin_nvd_vulnerable_versions.softwareversions_id = glpi_softwareversions.id
+         *  WHERE softwares_id = $item->getID()
+         *  GROUP BY vuln_id
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => 'vuln_id',
+                             'FROM' => 'glpi_plugin_nvd_vulnerable_versions',
+                             'INNER JOIN' => ['glpi_softwareversions' => ['FKEY' => ['glpi_plugin_nvd_vulnerable_versions' => 'softwareversions_id',
+                                                                                     'glpi_softwareversions' => 'id']]] ,
+                             'WHERE' => ['softwares_id' => $item->getID()],
+                             'GROUPBY' => 'vuln_id']);
+
+        return $res->numrows();
+    }
+
+    /**
+     * Count number of vulnerabilities related to a given device
+     *
+     * @since 1.0.0
+     *
+     * @param CommonGLPI $item      Device item to look vulnerabilities for
+     *
+     * @return int                  Number of vulnerabilities found
+     */
+    private static function countForDevice(CommonGLPI $item) {
+
+        global $DB;
+
+        /***********************************************************************************************
+         * Request vulnerabilities to which the given device's different programs are vulnerable
+         * 
+         *  SELECT vuln_id
+         *  FROM glpi_plugin_nvd_vulnerable_versions 
+         *  INNER JOIN glpi_items_softwareversions 
+         *  ON glpi_plugin_nvd_vulnerable_versions.softwareversions_id = 
+         *     glpi_items_softwareversions.softwareversions_id
+         *  WHERE items_id' = $item->getID() AND 'itemtype' = $item->getType()
+         *  GROUP BY vuln_id
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => 'vuln_id',
+                                         'FROM' => 'glpi_plugin_nvd_vulnerable_versions',
+                                         'INNER JOIN' => ['glpi_items_softwareversions' => ['FKEY' => ['glpi_plugin_nvd_vulnerable_versions' => 'softwareversions_id',
+                                                                                                     'glpi_items_softwareversions' => 'softwareversions_id']]],
+                                         'WHERE' => ['items_id' => $item->getID(), 'itemtype' => $item->getType()],
+                                         'GROUPBY' => 'vuln_id']);
+
+        return $res->numrows();
+    }
+
+    /**
+     * Count total number of vulnerabilities
+     *
+     * @since 1.0.0
+     *
+     * @return int                  Number of vulnerabilities found
+     */
+    private static function countForDashboard() {
+
+        global $DB;
+
+        /***********************************************************************************************
+         * Request every vulnerability registered
+         * 
+         *  SELECT vuln_id 
+         *  FROM glpi_plugin_nvd_vulnerable_versions, glpi_items_softwareversions
+         *  WHERE glpi_plugin_nvd_vulnerable_versions.softwareversions_id = 
+         *        glpi_items_softwareversions.softwareversions_id
+         *  GROUP BY vuln_id
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => 'vuln_id',
+                                         'FROM' => ['glpi_plugin_nvd_vulnerable_versions', 'glpi_items_softwareversions'],
+                                         'FKEY' => ['glpi_plugin_nvd_vulnerable_versions' => 'softwareversions_id',
+                                                    'glpi_items_softwareversions' => 'softwareversions_id'],
+                                         'GROUPBY' => 'vuln_id']);
+
+        return $res->numrows();
     }
 
     /**
@@ -304,24 +420,27 @@ class PluginNvdVuln extends CommonDBTM {
      */
     private static function displayVulnerabilityList($DBQueryResult, $vulnerableInstances, $instance_name) {
 
+        // If no vulnerabilities are found do not display anything
+        if (!$vulnerableInstances) { return; }
+
         $table =    '<table class="center">';
         $table .=   '<colgroup><col width="10%"/><col width="10%"/><col width="15%"/><col width="55%"/><col width="10%"/></colgroup>';
         $table .=   '<tr>';
-        $table .=   '<th>' . __('Severity') . '</th>';
-        $table .=   '<th>' . __('Score') . '</th>';
-        $table .=   '<th>CVE-ID</th>';
-        $table .=   '<th>' . __('Description') . '</th>';
-        $table .=   '<th>' . $instance_name . '</th>';
+        $table .=   '<th class="centered">' . __('Severity') . '</th>';
+        $table .=   '<th class="centered">' . __('Score') . '</th>';
+        $table .=   '<th class="centered">CVE-ID</th>';
+        $table .=   '<th class="centered">' . __('Description') . '</th>';
+        $table .=   '<th class="centered">' . $instance_name . '</th>';
         $table .=   '</tr>';
 
         foreach ($DBQueryResult as $id => $row) {
 
             $table .= '<tr>';
-            $table .= '<td>' . PluginNvdCverecord::getCvssScoreSeverity($row['base_score']) . '</td>';
-            $table .= '<td>' . $row['base_score'] . '</td>';
-            $table .= '<td> <a href="' . PluginNvdCverecord::getCveNvdUrl($row['cve_id']) . '">' . $row['cve_id'] . '</a></td>';
-            $table .= '<td>' . PluginNvdCverecord::getDescriptionForLanguage($row['description']) . '</td>';
-            $table .= '<td>';
+            $table .= '<td class="centered">' . PluginNvdCverecord::getCvssScoreSeverity($row['base_score']) . '</td>';
+            $table .= '<td class="centered">' . $row['base_score'] . '</td>';
+            $table .= '<td class="centered"> <a href="' . PluginNvdCverecord::getCveNvdUrl($row['cve_id']) . '">' . $row['cve_id'] . '</a></td>';
+            $table .= '<td class="justified">' . PluginNvdCverecord::getDescriptionForLanguage($row['description']) . '</td>';
+            $table .= '<td class="centered">';
             $table .= $vulnerableInstances[$id];
             $table .= '</td>';
             $table .= '</tr>';
