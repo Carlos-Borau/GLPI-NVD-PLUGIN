@@ -1,4 +1,4 @@
-function addEventListenerToVendorSelect(server) {
+function addEventListenerToVendorSelect() {
     var selectVendor = document.querySelector("#nvd_cpe_vendor_dropdown");
     var selectProduct = document.querySelector("#nvd_cpe_product_dropdown");
 

@@ -1,1 +1,106 @@
+<?xml version="1.0"?>
+<root>
+    <name>NVD</name>
+    <key>nvd</key>
+    <state>stable</state>
+    <logo/>
+    <description>
+        <short>
+            <en>View security alerts for CVEs found on assets managed from GLPI.</en>
+            <es>Visualiza alertas de seguridad de CVEs encontrados en activos gestionados desde GLPI.</es>
+        </short>
+        <long>
+            <en>
+                The NVD plugin for GLPI has been developed as an open source project with its main objective being providing a mechanism for the 
+                GLPI framework to monitor known software vulnerabilities found on the IT assets managed by GLPI. The main features of the plugin
+                are listed below:
 
+                -Assigning CPE names to GLPI-managed software instances: allows a GLPI user to manually select the product and vendor fields of 
+                    the CPE standard for a particular program based on lists of vendors and products officially published by NIST.
+
+                -GLPI Inventory Compilation: Walkthrough of the GLPI inventory, specifically the GLPI database tables that support this functionality,
+                    in order to extract the different programs managed by the tool, their names, versions and manufacturers, as well as their
+                    corresponding installations on the different devices managed by GLPI.
+
+                -Vulnerability query to the NIST public database (NVD): Taking the different software installations present in the managed devices,
+                    the plugin builds their corresponding CPE identifiers with which the NVD database is queried for vulnerabilities matching such
+                    configurations.
+
+                -Storage of found vulnerabilities: Each vulnerability found and its corresponding associations with the installations present on the 
+                    managed devices are stored in the local database to allow tracking of the affected assets and visualization of the vulnerabilities
+                    present on them.
+
+                -Automation of vulnerability update tasks: By creating a periodically activated task, it is posible to automate the compilation of 
+                    installations, query and storage of known vulnerabilities, as well as the elimination of vulnerabilities that are no longer 
+                    present on any device.
+
+                -Vulnerability visualization: New pages are added to allow visualization of the different vulnerabilities collected as a whole and
+                    for each managed computer and program. These views display general information about the vulnerabilities present such as their
+                    identifier, brief description, severity and external references.
+            </en>
+            <es>
+                El plugin NVD para GLPI se ha desarrollado como un proyecto de software libre con el principal objetivo de proporcionar un mécanismo
+                de monitorización de vulnerabilidades software conocidas para el marco de trabajo de GLPI y los activos informáticos gestionados
+                mediante esta herramienta. Las principales capacidades del plugin se listan a continuación:
+
+                -Asignación de nombres CPE a las instancias de programas gestionadas por GLPI: Permite al usuario de GLPI seleccionar de forma manual
+                    los campos producto y fabricante del estándar CPE para un programa en concreto basándose en listas de fabricantes y productos
+                    publicadas oficialmente por el NIST.
+
+                -Compilación del inventariado de GLPI: Recorrido sobre el inventariado de GLPI, concretamente sobre las tablas de la base de datos de
+                    GLPI que soportan esta funcionalidad, para extraer los diferentes programas gestionados por la herramienta, sus nombres, versiones
+                    y fabricantes así como sus correspondientes instalaciones en los diferentes dispositivos gestionados por GLPI.
+
+                -Consulta de vulnerabilidades a la base de datos pública del NIST (NVD): A partir de las diversas instalaciones de programas presentes
+                    en los equipos gestionados permite la construcción de sus correspondientes identificadores CPE con los que se consulta la base de
+                    datos NVD en busca de vulnerabilidades conocidas para tales configuraciones.
+
+                -Almacenamiento de vulnerabilidades encontradas: Cada vulnerabilidad encontrada y sus correspondientes asociaciones a las instalaciones
+                    presentes en los equipos gestionados son almacenadas en la base de datos local para permitir llevar a cabo un seguimiento de los
+                    activos afectados y la visualización de las vulnerabilidades presentes.
+
+                -Automatización de las tareas de actualización de vulnerabilidades: Mediante la creación de una tarea de activación periódica se consigue
+                    automatizar la operativa de compilación de instalaciones, consulta y almacenamiento de vulnerabilidades conocidas, así como la 
+                    eliminación de vulnerabilidades que ya no están presentes.
+
+                -Visualización de vulnerabilidades: Se añaden vistas para permitir visualizar las diferentes vulnerabilidades recopiladas en conjunto y
+                    para cada equipo y programa gestionados. En estas vistas se muestra información general sobre las vulnerabilidades presentes como el
+                    identificador, breve descripción, severidad y referencias externas.
+            </es>
+        </long>
+    </description>
+    <homepage>https://github.com/Carlos-Borau/GLPI-NVD-PLUGIN</homepage>
+    <download>https://github.com/Carlos-Borau/GLPI-NVD-PLUGIN/releases</download>
+    <issues>https://github.com/Carlos-Borau/GLPI-NVD-PLUGIN/issues</issues>
+    <readme>https://github.com/Carlos-Borau/GLPI-NVD-PLUGIN/blob/main/README.md</readme>
+    <authors>
+        <author>Carlos Borau González</author>
+    </authors>
+    <versions>
+        <version>
+            <num>1.0.0</num>
+            <compatibility>~10.0.6</compatibility>
+        </version>
+    </versions>
+    <langs>
+        <lang>en_US</lang>
+    </langs>
+    <license>GPLv3+</license>
+    <tags>
+        <en>
+            <tag>CVE</tag>
+            <tag>NVD</tag>
+            <tag>vulnerabilities</tag>
+            <tag>softwares</tag>
+            <tag>operating systems</tag>
+        </en>
+        <es>
+            <tag>CVE</tag>
+            <tag>NVD</tag>
+            <tag>vulnerabilidades</tag>
+            <tag>programas</tag>
+            <tag>sistemas operativos</tag>
+        </es>
+    </tags>
+    <screenshots/>
+</root>

@@ -51,7 +51,7 @@ function pluginNvdCreateTables(){
 
         $query = "CREATE TABLE `glpi_plugin_nvd_vulnerabilities` (
                     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-                    `cve_id` VARCHAR(16) UNIQUE,
+                    `cve_id` VARCHAR(16) UNIQUE NOT NULL,
                     `description` VARCHAR(8000),
                     `base_score` FLOAT(24),
                     `exploitability_score` FLOAT(24),

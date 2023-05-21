@@ -8,7 +8,7 @@ define('PLUGIN_NVD_MIN_GLPI', '10.0.6');
 define('PLUGIN_NVD_DIR', __DIR__);
 
 /**
- * Init the hooks of the plugin
+ * Init the hooks of the plugin and register plugin classes
  *
  * @return void
  */
@@ -44,10 +44,6 @@ function plugin_init_nvd() {
    $PLUGIN_HOOKS[Hooks::ADD_JAVASCRIPT]['nvd'] = 'js/nvd.js';
    $PLUGIN_HOOKS[Hooks::ADD_CSS]['nvd'] = 'css/nvd.css';
 
-   /**
-    * 
-    * @todo
-    */ 
 }
 
 /**
