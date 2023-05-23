@@ -41,7 +41,51 @@ class PluginNvdUpdatevuln extends CommonGLPI {
 
         if ($item::getType() === Central::getType()) {
             
-            self::cronUpdateVulnTask();
+            #self::cronUpdateVulnTask();
+
+            $apiKey = self::getNvdApiKey();
+
+            // Configure connection to NVD API
+            $NVD_Connection = new PluginNvdNvdconnection();
+            $NVD_Connection->setUrlParams([
+                CVE_ID => 'CVE-2023-33599'
+            ]);
+            $NVD_Connection->setRequestHeaders([
+                API_KEY => $apiKey
+            ]);
+
+            // Get CVE records from NVD
+            $records = $NVD_Connection->launchRequest();
+
+            $json_string = json_encode($records, JSON_PRETTY_PRINT);
+
+            // Vulnerabilities retrieved for this page
+            $vulnerabilities = $records['vulnerabilities'];
+
+            foreach ($vulnerabilities as $vulnerability) {
+
+                $record = $vulnerability['cve'];
+
+                // Configuration(s)
+                $configurations = [];
+
+                if (isset($record['configurations'])) {
+
+                    foreach($record['configurations'] as $vendor_configs) {
+
+                        $cpeMatches = $vendor_configs['nodes'][0]['cpeMatch'];
+
+                        foreach($cpeMatches as $cpeMatch) {
+    
+                            $criteria = $cpeMatch['criteria'];
+    
+                            echo "\t$criteria<br>";
+                        }
+    
+                        echo "<br>";
+                    }
+                }
+            }
         }
         
         return true;
@@ -78,6 +122,9 @@ class PluginNvdUpdatevuln extends CommonGLPI {
 
         // Get NVD API key from database
         $apiKey = self::getNvdApiKey();
+
+        // Get next vulnerability ID from database
+        $nextVulnID = self::getNextVulnId();
 
         // If no API Key is set the task can't proceed
         if ($apiKey == NULL) { return false; }
@@ -131,11 +178,8 @@ class PluginNvdUpdatevuln extends CommonGLPI {
                 // Missing references to known vulnerabilities
                 $missingVulnerabilities = array_diff($NVD_CVEs, array_keys($CVEs));
 
-                // Create records in GLPI database for new vulnerabilities
-                self::insertNewVulnerabilities($missingVulnerabilities, $CVE_Records);
-
-                // Update Known CVEs
-                $CVEs = self::getKnownCVEs();
+                // Create records in GLPI database for new vulnerabilities and update known CVEs
+                self::insertNewVulnerabilities($missingVulnerabilities, $CVE_Records, $nextVulnID, $CVEs);
 
                 // Missing references to known vulnerabilities for software version
                 $missingVersionVulnerabilities = array_diff($NVD_CVEs, $version_CVEs);
@@ -185,7 +229,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
             $NVD_Connection->setUrlParams([START_INDEX => $processedRecords]);
 
             // Get CVE records from NVD
-            $records = $NVD_Connection->launchRequest(true);
+            $records = $NVD_Connection->launchRequest();
 
             // Number of total results
             $totalResults = $records['totalResults'];
@@ -206,8 +250,25 @@ class PluginNvdUpdatevuln extends CommonGLPI {
                 // Description(s)
                 $descriptions = [];
         
-                foreach($record['descriptions'] as $description){
+                foreach($record['descriptions'] as $description) {
                     $descriptions[$description['lang']] = $description['value'];
+                }
+
+                // Configuration(s)
+                $configurations = [];
+
+                foreach($record['configurations'] as $vendor_configs) {
+
+                    $cpeMatches = $vendor_configs['nodes']['cpeMatch'];
+
+                    foreach($cpeMatches as $cpeMatch) {
+
+                        $criteria = $cpeMatch['criteria'];
+
+                        echo "$criteria<br>";
+                    }
+
+                    echo "<br>";
                 }
 
                 // CVSS Metrics
@@ -220,6 +281,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
 
                 $CVE_Records[$CVE_ID] = array(
                     'descriptions' => $descriptions,
+                    'configurations' => $configurations,
                     'base_score' => $base_score,
                     'exploitability_score' => $exploit_score,
                     'impact_score' => $impact_score
@@ -288,6 +350,35 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         }
 
         return NULL;
+    }
+
+    /**
+     * Queries the GLPI database and returns the current autoincrement value for the table 
+     * glpi_plugin_nvd_vulnerabilities
+     * 
+     * @since 1.0.0
+     * 
+     * @return int    autoincrement value
+     */
+    private static function getNextVulnId() {
+
+        global $DB;
+
+        /***********************************************************************************************
+         * Request MAX id from glpi_plugin_nvd_vulnerabilities
+         * 
+         *  SELECT AUTO_INCREMENT
+         *  FROM INFORMATION_SCHEMA.TABLES
+         *  WHERE TABLE_SCHEMA = glpi AND TABLE_NAME = glpi_plugin_nvd_vulnerabilities
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => 'AUTO_INCREMENT',
+                             'FROM' => 'INFORMATION_SCHEMA.TABLES',
+                             'WHERE' => ['TABLE_SCHEMA' => 'glpi',
+                                         'TABLE_NAME' => 'glpi_plugin_nvd_vulnerabilities']]);
+
+        $row = $res->current();
+
+        return $row['AUTO_INCREMENT'];
     }
 
     /**
@@ -474,10 +565,11 @@ class PluginNvdUpdatevuln extends CommonGLPI {
      * 
      * @param array     $missingVulnerabilities     List of CVE IDs of vulnerabilities to insert
      * @param array     $CVE_Records                List of CVE records
+     * @param int       $nextVulnID                 Numeric id for the next inserted vulnerability
      * 
-     * @return
+     * @return void
      */
-    private static function insertNewVulnerabilities($missingVulnerabilities, $CVE_Records) {
+    private static function insertNewVulnerabilities($missingVulnerabilities, $CVE_Records, &$nextVulnID, &$knownCVEs) {
 
         global $DB;
 
@@ -485,8 +577,11 @@ class PluginNvdUpdatevuln extends CommonGLPI {
 
             $CVE_Record = $CVE_Records[$CVE_ID];
 
-            // Vulnerability description
-            $description = json_encode($CVE_Record['descriptions']);
+            // Vulnerability descriptions
+            $descriptions = $CVE_Record['descriptions'];
+
+            // Vulnerability configurations
+            $configurations = $CVE_Record['configurations'];
 
             // Vulnerability base score
             $base_score = $CVE_Record['base_score'];
@@ -501,18 +596,97 @@ class PluginNvdUpdatevuln extends CommonGLPI {
              * Insert new vulnerability into GLPI database
              * 
              *  INSERT INTO glpi_plugin_nvd_vulnerabilities
-             *  (cve_id, description, base_score, exploitability_score, impact_score)
-             *  VALUES ($CVE_ID, $description, $base_score, $exploitability_score, $impact_score)
+             *  (cve_id, base_score, exploitability_score, impact_score)
+             *  VALUES ($CVE_ID, $base_score, $exploitability_score, $impact_score)
              **********************************************************************************************/
             $DB->insert(
                 'glpi_plugin_nvd_vulnerabilities', [
                     'cve_id' => $CVE_ID,
-                    'description' => $description,
                     'base_score' => $base_score,
                     'exploitability_score' => $exploitability_score,
                     'impact_score' => $impact_score
                 ]
             );
+
+            // Insert conrresponding descriptions
+            self::insertVulnerabilityDescriptions($nextVulnID, $descriptions);
+
+            // Insert corresponding configurations
+            self::insertVulnerabilityConfigurations($nextVulnID, $configurations);
+
+            // Update known CVEs
+            $knownCVEs[$CVE_ID] = $nextVulnID;
+
+            $nextVulnID++;
+        }
+    }
+
+    /**
+     * Inserts descriptions for a newly created vulnerability
+     * 
+     * @since 1.0.0
+     * 
+     * @param int       $vuln_id                Numeric id for the newly inserted vulnerability
+     * @param array     $descriptions           List of descriptions in different languages
+     * 
+     * @return void
+     */
+    private static function insertVulnerabilityDescriptions($vuln_id, $descriptions) {
+
+        global $DB;
+
+        foreach ($descriptions as $language => $description) {
+
+            /***********************************************************************************************
+             * Insert new vulnerability description into glpi database
+             * 
+             *  INSERT INTO glpi_plugin_nvd_vulnerability_descriptions
+             *  (vuln_id, language, description) VALUES ($vuln_id, $language, $description)
+             **********************************************************************************************/
+            $DB->insert(
+                'glpi_plugin_nvd_vulnerability_descriptions', [
+                    'vuln_id' => $vuln_id,
+                    'language' => $language,
+                    'description' => $description
+                ]
+            );
+        }
+    }
+
+    /**
+     * Inserts configurations for a newly created vulnerability
+     * 
+     * @since 1.0.0
+     * 
+     * @param int       $vuln_id                Numeric id for the newly inserted vulnerability
+     * @param array     $configurations         List of configurations for different softwares
+     * 
+     * @return void
+     */
+    private static function insertVulnerabilityConfigurations($vuln_id, $configurations) {
+
+        global $DB;
+
+        foreach ($configurations as $vendor => $products) {
+
+            foreach ($products as $product => $configuration) {
+
+                /***********************************************************************************************
+                 * Insert new vulnerability configuration into glpi database
+                 * 
+                 *  INSERT INTO glpi_plugin_nvd_vulnerability_configurations
+                 *  (vuln_id, vendor_name, product_name, configuration) 
+                 *  VALUES ($vuln_id, $vendor, $product, $configuration)
+                 **********************************************************************************************/
+                $DB->insert(
+                    'glpi_plugin_nvd_vulnerability_configurations', [
+                        'vuln_id' => $vuln_id,
+                        'vendor_name' => $vendor,
+                        'product_name' => $product,
+                        'configuration' => $configuration
+                    ]
+                );
+            }
         }
     }
 

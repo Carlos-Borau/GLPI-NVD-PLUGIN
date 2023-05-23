@@ -2,6 +2,7 @@
 
 define('API_KEY',               'apiKey');
 define('CPE_NAME',              'cpeName');
+define('CVE_ID',                'cveId');
 define('VULNERABLE',            'isVulnerable');
 define('LAST_MOD_START_DATE ',  'lastModStartDate');
 define('LAST_MOD_END_DATE ',    'lastModEndDate');

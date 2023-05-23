@@ -12,7 +12,7 @@
  */
 function pluginNvdUninstall(){
 
-    #pluginNvdDropTables();
+    pluginNvdDropTables();
 
 }
 
@@ -21,6 +21,8 @@ function pluginNvdUninstall(){
  *
  * Dropped tables are:
  * - glpi_plugin_nvd_vulnerabilities
+ * - glpi_plugin_nvd_vulnerability_descriptions
+ * - glpi_plugin_nvd_vulnerability_configurations
  * - glpi_plugin_nvd_vulnerable_versions
  * - glpi_plugin_nvd_cpe_software_associations
  * - glpi_plugin_nvd_config
@@ -35,6 +37,8 @@ function pluginNvdDropTables(){
 
     $tables = [
         'vulnerabilities',
+        'vulnerability_descriptions',
+        'vulnerability_configurations',
         'vulnerable_versions',
         'cpe_software_associations',
         'config'

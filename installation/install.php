@@ -41,9 +41,7 @@ function pluginNvdCreateTables(){
      * Fields:
      *      -id = Numerical autoincrement ID
      *      -cve_id = Vulnerability ID on the CVE MITRE database
-     *      -description = Summary of the vulnerability's characteristics and behavior
-     *      -nvd_ref = Reference to the vulnerability's entry on the nvd database
-     *      -severity = Vulnerability's severity (NONE, LOW, MEDIUM, HIGH, CRITICAL)
+     *      -base_score = Vulnerability's CVSS base score
      *      -exploitability_score = Vulneravility's facility to be exploited [0.0-10.0]
      *      -impact_score = Vulneravility's capability to impact an asset once exploited [0.0-10.0]
      **********************************************************************************************/
@@ -52,10 +50,57 @@ function pluginNvdCreateTables(){
         $query = "CREATE TABLE `glpi_plugin_nvd_vulnerabilities` (
                     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
                     `cve_id` VARCHAR(16) UNIQUE NOT NULL,
-                    `description` VARCHAR(8000),
                     `base_score` FLOAT(24),
                     `exploitability_score` FLOAT(24),
                     `impact_score` FLOAT(24),
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+        $DB->queryOrDie($query, $DB->error());
+    }
+
+    /***********************************************************************************************
+     * Table:   glpi_plugin_nvd_vulnerability_descriptions
+     * Stores:  Descriptions in different languages for stored vulnerabilities
+     * Fields:
+     *      -id = Numerical autoincrement ID
+     *      -vuln_id = ID of the vulnerability in the glpi_plugin_nvd_vulnerabilities table
+     *      -language = ISO 639-1 language code
+     *      -description = Summary of the vulnerability's characteristics and behavior
+     **********************************************************************************************/
+    if(!$DB->tableExists('glpi_plugin_nvd_vulnerability_descriptions')){
+
+        $query = "CREATE TABLE `glpi_plugin_nvd_vulnerability_descriptions` (
+                    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `vuln_id` INT UNSIGNED NOT NULL,
+                    `language` CHAR(2),
+                    `description` VARCHAR(8000),
+                    CONSTRAINT `VULN_LANG` UNIQUE (`vuln_id`, `language`),
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+        $DB->queryOrDie($query, $DB->error());
+    }
+
+    /***********************************************************************************************
+     * Table:   glpi_plugin_nvd_vulnerability_configurations
+     * Stores:  CPE software configurations for stored vulnerabilities
+     * Fields:
+     *      -id = Numerical autoincrement ID
+     *      -vuln_id = ID of the vulnerability in the glpi_plugin_nvd_vulnerabilities table
+     *      -vendor_name = Name of the software's vendor on the NIST CPE Dictionary
+     *      -product_name = Name of the software on the NIST CPE Dictionary
+     *      -configuration = CPE configuration containing specific fields for a software
+     **********************************************************************************************/
+    if(!$DB->tableExists('glpi_plugin_nvd_vulnerability_configurations')){
+
+        $query = "CREATE TABLE `glpi_plugin_nvd_vulnerability_configurations` (
+                    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `vuln_id` INT UNSIGNED NOT NULL,
+                    `vendor_name` VARCHAR(255),
+                    `product_name` VARCHAR(255),
+                    `configuration` VARCHAR(8000),
+                    CONSTRAINT `VULN_CONF` UNIQUE (`vuln_id`, `vendor_name`, `product_name`),
                     PRIMARY KEY (`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
@@ -76,6 +121,7 @@ function pluginNvdCreateTables(){
                     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
                     `vuln_id` INT UNSIGNED NOT NULL,
                     `softwareversions_id` INT UNSIGNED NOT NULL,
+                    CONSTRAINT `VULN_VERSION` UNIQUE (`vuln_id`, `softwareversions_id`),
                     PRIMARY KEY (`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
@@ -109,13 +155,11 @@ function pluginNvdCreateTables(){
      * Stores:  Stores a sinle row containing config values used when requesting CVE records
      * Fields:
      *      -api_key = NVD API KEY for querying the database API
-     *      -last_consult_date = ISO-8061 date/time formated date of the last consult
      **********************************************************************************************/ 
     if(!$DB->tableExists('glpi_plugin_nvd_config')){
 
         $query = "CREATE TABLE `glpi_plugin_nvd_config` (
                     `api_key` VARCHAR(63) NOT NULL,
-                    `last_consult_date` VARCHAR(63),
                     PRIMARY KEY (`api_key`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 

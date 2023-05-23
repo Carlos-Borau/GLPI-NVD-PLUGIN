@@ -102,7 +102,7 @@ class PluginNvdConnection {
      * 
      * @return string   request output
      */
-    public function launchRequest($removeNotJson = false) {
+    public function launchRequest() {
 
         $fullUrl    = $this->getCompleteUrl();
         $headers    = $this->getRequestHeaders();
@@ -113,18 +113,12 @@ class PluginNvdConnection {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
         if (count($headers) != 0) {
-            curl_setopt($ch, CURLOPT_HEADER, $headers);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         }
 
         $output = curl_exec($ch);
 
         curl_close($ch);
-
-        if ($removeNotJson) {
-            preg_match('/(?<json>\{.*\})/', $output, $output);
-
-            return (isset($output['json'])) ? json_decode($output['json'], true) : [];
-        }
 
         return json_decode($output, true);
     }
