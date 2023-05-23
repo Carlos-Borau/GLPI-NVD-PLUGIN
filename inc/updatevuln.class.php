@@ -48,7 +48,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
             // Configure connection to NVD API
             $NVD_Connection = new PluginNvdNvdconnection();
             $NVD_Connection->setUrlParams([
-                CVE_ID => 'CVE-2023-33599'
+                CVE_ID => 'CVE-2023-30063'
             ]);
             $NVD_Connection->setRequestHeaders([
                 API_KEY => $apiKey
@@ -56,8 +56,6 @@ class PluginNvdUpdatevuln extends CommonGLPI {
 
             // Get CVE records from NVD
             $records = $NVD_Connection->launchRequest();
-
-            $json_string = json_encode($records, JSON_PRETTY_PRINT);
 
             // Vulnerabilities retrieved for this page
             $vulnerabilities = $records['vulnerabilities'];
@@ -74,6 +72,10 @@ class PluginNvdUpdatevuln extends CommonGLPI {
                     foreach($record['configurations'] as $vendor_configs) {
 
                         $cpeMatches = $vendor_configs['nodes'][0]['cpeMatch'];
+
+                        $CPE = new PluginNvdCpe($cpeMatches[0]['criteria']);
+
+                        print($CPE->get_CPE_WFN());
 
                         foreach($cpeMatches as $cpeMatch) {
     

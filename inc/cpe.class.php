@@ -1,21 +1,28 @@
 <?php
 
-define('CPE_PART',      0);
-define('CPE_VENDOR',    1);
-define('CPE_PRODUCT',   2);
-define('CPE_VERSION',   3);
-define('CPE_UPDATE',    4);
-define('CPE_EDITION',   5);
-define('CPE_LANGUAGE',  6);
-define('CPE_SW_EDTION', 7);
-define('CPE_TARGET_SW', 8);
-define('CPE_TARGET_HW', 9);
-define('CPE_OTHER',    10);
+define('CPE_CPE_NAME',      0);
+define('CPE_CPE_VERSION',   1);
+define('CPE_PART',          2);
+define('CPE_VENDOR',        3);
+define('CPE_PRODUCT',       4);
+define('CPE_VERSION',       5);
+define('CPE_UPDATE',        6);
+define('CPE_EDITION',       7);
+define('CPE_LANGUAGE',      8);
+define('CPE_SW_EDTION',     9);
+define('CPE_TARGET_SW',    10);
+define('CPE_TARGET_HW',    11);
+define('CPE_OTHER',        12);
 
 
 class PluginNvdCpe {
 
+    private const cpe_name = "cpe";
+    private const cpe_version = "2.3";
+
     public array $attributes = array(
+        CPE_CPE_NAME    => self::cpe_name,
+        CPE_CPE_VERSION => self::cpe_version,
         CPE_PART        => '*',
         CPE_VENDOR      => '*',
         CPE_PRODUCT     => '*',
@@ -28,6 +35,25 @@ class PluginNvdCpe {
         CPE_TARGET_HW   => '*',
         CPE_OTHER       => '*'
     );
+
+    /**
+     * Create CPE object and assign values to its attributes
+     * 
+     * @since 1.0.0
+     * 
+     * @param string $CPE_name CPE format name
+     * 
+     * @return void 
+     */
+    public function __construct($CPE_name = "") {
+
+        $attributes = explode(':', $CPE_name);
+
+        foreach ($attributes as $attribute => $value) {
+
+            $this->attributes[$attribute] = $value;
+        }
+    }
 
     /**
      * Assign values to CPE attributes
@@ -56,13 +82,13 @@ class PluginNvdCpe {
      */
     public function get_CPE_WFN () {
 
-        $cpe_wfn = "cpe:2.3";
+        $cpe_wfn = '';
 
         foreach($this->attributes as $attribute => $value){
-            $cpe_wfn .= ':'.$value;
-        } 
+            $cpe_wfn .= $value . ':';
+        }
 
-        return $cpe_wfn;
+        return rtrim($cpe_wfn, ':');
     }
 
     /**
