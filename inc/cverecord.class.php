@@ -108,7 +108,7 @@ class PluginNvdCverecord {
 
             } else {
 
-                $warning .= __('Some of the CPE configurations that are associated with this vulnerability&#10;may contain some constrains on their CPE attributes:');
+                $warning .= __('Some of the CPE configurations that are associated with this vulnerability&#10;may contain some constrains on their CPE attributes.');
             }
 
             $warning .= '">' . $warning_char;
