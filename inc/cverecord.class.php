@@ -50,16 +50,16 @@ class PluginNvdCverecord {
      * 
      * @since 1.0.0
      * 
-     * @param array $descriptions   Array of descriptions in different languages
-     * @param array $language       Language for which to retrieve a description
+     * @param DBmysqlIterator   $res            Array of descriptions in different languages
+     * @param string            $language       Language for which to retrieve a description
      * 
-     * @return string               Vulnerability description
+     * @return string           Vulnerability description
      */
-    public static function getDescriptionForLanguage($descriptions, $language=NULL) {
+    public static function getDescriptionForLanguage($res, $language=NULL) {
 
-        $language = ($language!=NULL) ? $language : self::getGLPILanguage();
+        $language = ($language!=NULL) ? $language : PluginNvdDatabaseutils::getGLPILanguage();
 
-        $descriptions = json_decode($descriptions, true);
+        $descriptions = PluginNvdDatabaseutils::pushResToArray($res, 'description', 'language');
 
         foreach ($descriptions as $vuln_language => $description) {
 
@@ -73,34 +73,49 @@ class PluginNvdCverecord {
     }
 
     /**
-     * Queries the GLPI database and returns the default language from settings
+     * Get vulnerability configuration warning
      * 
      * @since 1.0.0
      * 
-     * @return string    GLPI default language
+     * @param DBmysqlIterator   $res            Array of configurations for a vulnerability
+     * @param bool              $isSoftware     Indicates whether to treat the query result as a software or not
+     * 
+     * @return string           Configuration warning for a vulnerability
      */
-    private static function getGLPILanguage() {
+    public static function parseConfiguration($res, $isSoftware) {
 
-        global $DB;
+        $warning_char = mb_chr(0x2757, 'UTF-8');
 
-        /***********************************************************************************************
-         * Request GLPI default language from settings
-         * 
-         *  SELECT value
-         *  FROM glpi_configs
-         *  WHERE name = language
-         **********************************************************************************************/
-        $res = $DB->request(['SELECT' => 'value',
-                             'FROM' => 'glpi_configs',
-                             'WHERE' => ['name' => 'language']]);
+        if ($res->numrows() > 0) {
 
-        if ($res->numrows() != 0) {
+            $warning = 'title="';
 
-            $row = $res->current();
+            if ($isSoftware) {
 
-            return $row['value'];
+                $row = $res->current();
+
+                $update     = $row['update'];
+                $edition    = $row['edition'];
+                $target_sw  = $row['target_sw'];
+                $target_hw  = $row['target_hw'];
+
+                $warning .= __('Some of the CPE configurations for this software that are associated with this vulnerability&#10;may contain some constrains on the following CPE attributes:');
+                            
+                if (!is_null($update)) { $warning .= '&#10; - update: ' . $update; }
+                if (!is_null($edition)) { $warning .= '&#10; - sw_edition: ' . $edition; }
+                if (!is_null($target_sw)) { $warning .= '&#10; - target_sw: ' . $target_sw; }
+                if (!is_null($target_hw)) { $warning .= '&#10; - target_hw: ' . $target_hw; }
+
+            } else {
+
+                $warning .= __('Some of the CPE configurations that are associated with this vulnerability&#10;may contain some constrains on their CPE attributes:');
+            }
+
+            $warning .= '">' . $warning_char;
+
+            return $warning;
         }
-
+        
         return '';
     }
 }

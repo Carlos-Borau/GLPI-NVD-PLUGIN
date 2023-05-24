@@ -45,7 +45,9 @@ class PluginNvdCpe {
      * 
      * @return void 
      */
-    public function __construct($CPE_name = "") {
+    public function __construct($CPE_name = null) {
+
+        if (is_null($CPE_name)) { return; }
 
         $attributes = explode(':', $CPE_name);
 
@@ -83,12 +85,30 @@ class PluginNvdCpe {
     public function get_CPE_WFN () {
 
         $cpe_wfn = '';
-
+        
         foreach($this->attributes as $attribute => $value){
             $cpe_wfn .= $value . ':';
         }
 
         return rtrim($cpe_wfn, ':');
+    }
+
+    /**
+     * Add CPE term to list if it is set
+     * 
+     * @since 1.0.0
+     * 
+     * @param array     list    List of CPE terms
+     * @param string    term    CPE term
+     * 
+     * @return void  
+     */
+    public static function addTermToAttributeList(&$list, $term) {
+
+        if ($term != '*' and $term != '-' and !in_array($term, $list)) {
+
+            $list[] = $term;
+        }
     }
 
     /**

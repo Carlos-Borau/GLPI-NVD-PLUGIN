@@ -90,7 +90,10 @@ function pluginNvdCreateTables(){
      *      -vuln_id = ID of the vulnerability in the glpi_plugin_nvd_vulnerabilities table
      *      -vendor_name = Name of the software's vendor on the NIST CPE Dictionary
      *      -product_name = Name of the software on the NIST CPE Dictionary
-     *      -configuration = CPE configuration containing specific fields for a software
+     *      -update = List of CPE updates for the software configurations
+     *      -edition = List of CPE software editions for the software configurations
+     *      -target_sw = List of CPE target softwares for the software configurations
+     *      -target_hw = List of CPE target hardwares for the software configurations
      **********************************************************************************************/
     if(!$DB->tableExists('glpi_plugin_nvd_vulnerability_configurations')){
 
@@ -99,7 +102,10 @@ function pluginNvdCreateTables(){
                     `vuln_id` INT UNSIGNED NOT NULL,
                     `vendor_name` VARCHAR(255),
                     `product_name` VARCHAR(255),
-                    `configuration` VARCHAR(8000),
+                    `update` VARCHAR(2047),
+                    `edition` VARCHAR(2047),
+                    `target_sw` VARCHAR(2047),
+                    `target_hw` VARCHAR(2047),
                     CONSTRAINT `VULN_CONF` UNIQUE (`vuln_id`, `vendor_name`, `product_name`),
                     PRIMARY KEY (`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";

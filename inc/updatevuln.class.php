@@ -41,53 +41,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
 
         if ($item::getType() === Central::getType()) {
             
-            #self::cronUpdateVulnTask();
-
-            $apiKey = self::getNvdApiKey();
-
-            // Configure connection to NVD API
-            $NVD_Connection = new PluginNvdNvdconnection();
-            $NVD_Connection->setUrlParams([
-                CVE_ID => 'CVE-2023-30063'
-            ]);
-            $NVD_Connection->setRequestHeaders([
-                API_KEY => $apiKey
-            ]);
-
-            // Get CVE records from NVD
-            $records = $NVD_Connection->launchRequest();
-
-            // Vulnerabilities retrieved for this page
-            $vulnerabilities = $records['vulnerabilities'];
-
-            foreach ($vulnerabilities as $vulnerability) {
-
-                $record = $vulnerability['cve'];
-
-                // Configuration(s)
-                $configurations = [];
-
-                if (isset($record['configurations'])) {
-
-                    foreach($record['configurations'] as $vendor_configs) {
-
-                        $cpeMatches = $vendor_configs['nodes'][0]['cpeMatch'];
-
-                        $CPE = new PluginNvdCpe($cpeMatches[0]['criteria']);
-
-                        print($CPE->get_CPE_WFN());
-
-                        foreach($cpeMatches as $cpeMatch) {
-    
-                            $criteria = $cpeMatch['criteria'];
-    
-                            echo "\t$criteria<br>";
-                        }
-    
-                        echo "<br>";
-                    }
-                }
-            }
+            self::cronUpdateVulnTask();
         }
         
         return true;
@@ -129,7 +83,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         $nextVulnID = self::getNextVulnId();
 
         // If no API Key is set the task can't proceed
-        if ($apiKey == NULL) { return false; }
+        if (is_null($apiKey)) { return false; }
 
         // Request all software versions installed on any device
         $allVersions = self::requestAllSoftwareInstallations();
@@ -223,6 +177,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         ]);
 
         $processedRecords = 0;
+        $totalResults = 1;
         $CVE_Records = [];
 
         // When too many records are present they must be retrieved through multiple requests
@@ -232,6 +187,9 @@ class PluginNvdUpdatevuln extends CommonGLPI {
 
             // Get CVE records from NVD
             $records = $NVD_Connection->launchRequest();
+
+            // If a request returned null try again
+            if (is_null($records)) { continue; }
 
             // Number of total results
             $totalResults = $records['totalResults'];
@@ -259,28 +217,40 @@ class PluginNvdUpdatevuln extends CommonGLPI {
                 // Configuration(s)
                 $configurations = [];
 
-                foreach($record['configurations'] as $vendor_configs) {
+                if (isset($record['configurations'])) {
 
-                    $cpeMatches = $vendor_configs['nodes']['cpeMatch'];
+                    foreach($record['configurations'] as $vendor_configs) {
 
-                    foreach($cpeMatches as $cpeMatch) {
+                        $cpeMatches = $vendor_configs['nodes'][0]['cpeMatch'];
 
-                        $criteria = $cpeMatch['criteria'];
+                        foreach($cpeMatches as $cpeMatch) {
+    
+                            $configuration = $cpeMatch['criteria'];
 
-                        echo "$criteria<br>";
+                            // Add new configuration
+                            self::processNewConfiguration($configurations, $configuration);
+                        }
                     }
 
-                    echo "<br>";
+                    // Clear empty configuration(s)
+                    self::clearEmptyConfigurations($configurations);
                 }
 
                 // CVSS Metrics
-                $main_metrics = array_values($record['metrics'])[0][0];
+                $base_score = null;
+                $exploit_score = null;
+                $impact_score = null;
 
-                // Vulnerability scores
-                $base_score     = $main_metrics['cvssData']['baseScore'];
-                $exploit_score  = $main_metrics['exploitabilityScore'];
-                $impact_score   = $main_metrics['impactScore'];
+                if (isset($record['metrics'][0][0])) {
 
+                    $main_metrics = array_values($record['metrics'])[0][0];
+
+                    $base_score     = $main_metrics['cvssData']['baseScore'];
+                    $exploit_score  = $main_metrics['exploitabilityScore'];
+                    $impact_score   = $main_metrics['impactScore'];
+                }
+
+                // Vulnerability information
                 $CVE_Records[$CVE_ID] = array(
                     'descriptions' => $descriptions,
                     'configurations' => $configurations,
@@ -298,30 +268,74 @@ class PluginNvdUpdatevuln extends CommonGLPI {
     }
 
     /**
-     * Combine values from database query result into an array
+     * Process vulnerability configuration and add it to known configurations
      * 
      * @since 1.0.0
      * 
-     * @return array    Array values
+     * @param array     configurations      List of known configurations
+     * @param string    configuration       New configuration to process
+     * 
+     * @return void
      */
-    private static function pushResToArray($res, $value, $key=NULL) {
+    private static function processNewConfiguration(&$configurations, $configuration) {
 
-        $array = [];
+        $CPE = new PluginNvdCpe($configuration);
 
-        if ($key == NULL) {
+        $attributes = $CPE->attributes;
 
-            foreach ($res as $id => $row) {
-                $array[] = $row[$value];
-            }
+        $vendor     = $attributes[CPE_VENDOR];
+        $product    = $attributes[CPE_PRODUCT];
+        $update     = $attributes[CPE_UPDATE];
+        $edition    = $attributes[CPE_SW_EDTION];
+        $software   = $attributes[CPE_TARGET_SW];
+        $hardware   = $attributes[CPE_TARGET_HW];
 
-        } else {
-
-            foreach ($res as $id => $row) {
-                $array[$row[$key]] = $row[$value];
-            }
+        if (!array_key_exists($vendor, $configurations)) {
+            $configurations[$vendor] = [];
         }
 
-        return $array;
+        if (!array_key_exists($product, $configurations[$vendor])) {
+            $configurations[$vendor][$product] = array(
+                CPE_UPDATE => [],
+                CPE_SW_EDTION => [],
+                CPE_TARGET_SW => [],
+                CPE_TARGET_HW => []
+            );
+        }
+
+        PluginNvdCpe::addTermToAttributeList($configurations[$vendor][$product][CPE_UPDATE], $update);
+        PluginNvdCpe::addTermToAttributeList($configurations[$vendor][$product][CPE_SW_EDTION], $edition);
+        PluginNvdCpe::addTermToAttributeList($configurations[$vendor][$product][CPE_TARGET_SW], $software);
+        PluginNvdCpe::addTermToAttributeList($configurations[$vendor][$product][CPE_TARGET_HW], $hardware);
+    }
+
+    /**
+     * Delete configurations with no attributes set
+     * 
+     * @since 1.0.0
+     * 
+     * @param array     configurations      List of known configurations
+     * 
+     * @return void
+     */
+    private static function clearEmptyConfigurations(&$configurations) {
+
+        foreach ($configurations as $vendor => $products) {
+            foreach ($products as $product => $configuration) {
+
+                $empty = empty(array_filter($configuration, function($attribute){
+                    return !empty($attribute);
+                }));
+
+                if ($empty) {
+                    unset($configurations[$vendor][$product]);
+                }
+            }
+
+            if (empty($configurations[$vendor])) {
+                unset($configurations[$vendor]);
+            }
+        }
     }
 
     /**
@@ -404,7 +418,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
                              'DISTINCT' => true,
                              'FROM' => 'glpi_items_softwareversions']);
 
-        return self::pushResToArray($res, 'softwareversions_id');
+        return PluginNvdDatabaseutils::pushResToArray($res, 'softwareversions_id');
     }
 
     /**
@@ -430,7 +444,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
                              'DISTINCT' => true,
                              'FROM' => 'glpi_plugin_nvd_vulnerable_versions']);
 
-        return self::pushResToArray($res, $column);
+        return PluginNvdDatabaseutils::pushResToArray($res, $column);
     }
 
     private static function removeOldVulnerableVersions($allVersions, $vulnVersions) {
@@ -481,7 +495,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
                                                                                                    'glpi_plugin_nvd_vulnerable_versions' => 'vuln_id']]] ,
                              'WHERE' => ['softwareversions_id' => $version_id]]);
 
-        return self::pushResToArray($res, 'cve_id');
+        return PluginNvdDatabaseutils::pushResToArray($res, 'cve_id');
     }
 
     /**
@@ -531,7 +545,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         $res = $DB->request(['SELECT' => ['id', 'cve_id'],
                              'FROM' => 'glpi_plugin_nvd_vulnerabilities']);
 
-        return self::pushResToArray($res, 'id', 'cve_id');
+        return PluginNvdDatabaseutils::pushResToArray($res, 'id', 'cve_id');
     }
 
     /**
@@ -554,8 +568,8 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         $res = $DB->request(['SELECT' => ['softwares_id', 'vendor_name', 'product_name'],
                              'FROM' => 'glpi_plugin_nvd_cpe_software_associations']);
 
-        $vendor_associations = self::pushResToArray($res, 'vendor_name', 'softwares_id');
-        $product_associations = self::pushResToArray($res, 'product_name', 'softwares_id');
+        $vendor_associations = PluginNvdDatabaseutils::pushResToArray($res, 'vendor_name', 'softwares_id');
+        $product_associations = PluginNvdDatabaseutils::pushResToArray($res, 'product_name', 'softwares_id');
 
         return [$vendor_associations, $product_associations];
     }
@@ -673,19 +687,27 @@ class PluginNvdUpdatevuln extends CommonGLPI {
 
             foreach ($products as $product => $configuration) {
 
+                $update     = (empty($configuration[CPE_UPDATE]))    ? null : implode(' ', $configuration[CPE_UPDATE]);
+                $edition    = (empty($configuration[CPE_SW_EDTION])) ? null : implode(' ', $configuration[CPE_SW_EDTION]);
+                $target_sw  = (empty($configuration[CPE_TARGET_SW])) ? null : implode(' ', $configuration[CPE_TARGET_SW]);
+                $target_hw  = (empty($configuration[CPE_TARGET_HW])) ? null : implode(' ', $configuration[CPE_TARGET_HW]);
+
                 /***********************************************************************************************
                  * Insert new vulnerability configuration into glpi database
                  * 
                  *  INSERT INTO glpi_plugin_nvd_vulnerability_configurations
-                 *  (vuln_id, vendor_name, product_name, configuration) 
-                 *  VALUES ($vuln_id, $vendor, $product, $configuration)
+                 *  (vuln_id, vendor_name, product_name, update, edition, target_sw, target_hw) 
+                 *  VALUES ($vuln_id, $vendor, $product, $update, $edition, $target_sw, $target_hw)
                  **********************************************************************************************/
                 $DB->insert(
                     'glpi_plugin_nvd_vulnerability_configurations', [
                         'vuln_id' => $vuln_id,
                         'vendor_name' => $vendor,
                         'product_name' => $product,
-                        'configuration' => $configuration
+                        'update' => $update,
+                        'edition' => $edition,
+                        'target_sw' => $target_sw,
+                        'target_hw' => $target_hw
                     ]
                 );
             }

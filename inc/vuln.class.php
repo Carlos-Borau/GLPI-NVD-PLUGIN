@@ -209,17 +209,32 @@ class PluginNvdVuln extends CommonDBTM {
                              'WHERE' => ['softwares_id' => $item->getID()],
                              'GROUPBY' => 'vuln_id']);
         
-        $vulnerabilities = [];
+        $vulnerabilities = PluginNvdDatabaseutils::pushResToArray($res, 'version', 'VULN_ID');
 
-        foreach ($res as $id => $row) {
-            $vulnerabilities[$row['VULN_ID']] = $row['version'];
-        }
+        /***********************************************************************************************
+         * Request CPE vendor and product name associated with given software
+         * 
+         *  SELECT vendor_name, product_name
+         *  FROM glpi_plugin_nvd_cpe_software_associations 
+         *  WHERE softwares_id = $item->getID()
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => ['vendor_name', 'product_name'],
+                                'FROM' => 'glpi_plugin_nvd_cpe_software_associations',
+                                'WHERE' => ['softwares_id' => $item->getID()]]);
+
+        if ($res->numrows() == 0) { return; }
+
+        $row = $res->current();
+        $filters = array(
+            'vendor_name' => $row['vendor_name'], 
+            'product_name' => $row['product_name']
+        );
 
         //Request information on the obtained CVE records 
         $res = self::requestVulnerabilities(array_keys($vulnerabilities));
 
         //Display list of vulnerabilities associated with given software
-        self::displayVulnerabilityList($res, $vulnerabilities, __('Versions'));
+        self::displayVulnerabilityList($res, $vulnerabilities, __('Versions'), $filters);
     }
 
     /**
@@ -408,38 +423,105 @@ class PluginNvdVuln extends CommonDBTM {
     }
 
     /**
+     * Request list of description for a given vulnerability
+     *
+     * @since 1.0.0
+     *
+     * @param int $vulnID       ID of vulnerabilities to query
+     *
+     * @return DBmysqlIterator
+     */
+    private static function requestDescriptions($vulnID) {
+
+        global $DB;
+
+        /***********************************************************************************************
+        * Request descriptions for a CVE record
+        * 
+        *  SELECT *
+        *  FROM glpi_plugin_nvd_vulnerability_descriptions
+        *  WHERE vuln_id = $vulnID
+        **********************************************************************************************/
+        $res = $DB->request(['FROM' => 'glpi_plugin_nvd_vulnerability_descriptions',
+                'WHERE' => ['vuln_id' => $vulnID]]);
+
+        return $res;
+    }
+
+    /**
+     * Request list of configurations for a given vulnerability
+     *
+     * @since 1.0.0
+     *
+     * @param int   $vulnID         ID of vulnerabilities to query
+     * @param array $filters        Optional query filters
+     *
+     * @return DBmysqlIterator
+     */
+    private static function requestConfigurations($vulnID, $filters) {
+
+        global $DB;
+
+        /***********************************************************************************************
+        * Request configurations for a CVE record
+        * 
+        *  SELECT *
+        *  FROM glpi_plugin_nvd_vulnerability_configurations
+        *  WHERE vuln_id = $vulnID AND $filters
+        **********************************************************************************************/
+        $condition = ['vuln_id' => $vulnID];
+
+        if (!is_null($filters)) {
+            $condition = array_merge($condition, $filters);
+        }
+
+        $res = $DB->request(['FROM' => 'glpi_plugin_nvd_vulnerability_configurations',
+                'WHERE' => $condition ]);
+
+        return $res;
+    }
+
+    /**
      * Display list of vulnerabilities for the given item
      *
      * @since 1.0.0
      *
-     * @param array $DBQueryResult       Result of the CVE query
-     * @param array $vulnerableInstances Array of vulnerability IDs and their instances
-     * @param bool $is_software          Whether or not to treat the instances as software versions or programs 
+     * @param DBmysqlIterator   $DBQueryResult          Result of the CVE query
+     * @param array             $vulnerableInstances    Array of vulnerability IDs and their instances
+     * @param bool              $is_software            Whether or not to treat the instances as software versions or programs 
      *
      * @return void
      */
-    private static function displayVulnerabilityList($DBQueryResult, $vulnerableInstances, $instance_name) {
+    private static function displayVulnerabilityList($DBQueryResult, $vulnerableInstances, $instance_name, $filters=NULL) {
 
         // If no vulnerabilities are found do not display anything
         if (!$vulnerableInstances) { return; }
 
         $table =    '<table class="center">';
-        $table .=   '<colgroup><col width="10%"/><col width="10%"/><col width="15%"/><col width="55%"/><col width="10%"/></colgroup>';
+        $table .=   '<colgroup><col width="10%"/><col width="5%"/><col width="15%"/><col width="5%"/><col width="55%"/><col width="10%"/></colgroup>';
         $table .=   '<tr>';
         $table .=   '<th class="centered">' . __('Severity') . '</th>';
         $table .=   '<th class="centered">' . __('Score') . '</th>';
         $table .=   '<th class="centered">CVE-ID</th>';
+        $table .=   '<th class="centered">' . mb_chr(0x2755, 'UTF-8') . '</th>';
         $table .=   '<th class="centered">' . __('Description') . '</th>';
         $table .=   '<th class="centered">' . $instance_name . '</th>';
         $table .=   '</tr>';
 
         foreach ($DBQueryResult as $id => $row) {
 
+            $descriptions   = self::requestDescriptions($id);
+            $description    = PluginNvdCverecord::getDescriptionForLanguage($descriptions);
+
+            $configurations = self::requestConfigurations($id, $filters);
+            $configuration_warning = PluginNvdCverecord::parseConfiguration($configurations, !is_null($filters));
+
             $table .= '<tr>';
             $table .= '<td class="centered">' . PluginNvdCverecord::getCvssScoreSeverity($row['base_score']) . '</td>';
             $table .= '<td class="centered">' . $row['base_score'] . '</td>';
             $table .= '<td class="centered"> <a href="' . PluginNvdCverecord::getCveNvdUrl($row['cve_id']) . '">' . $row['cve_id'] . '</a></td>';
-            $table .= '<td class="justified">' . PluginNvdCverecord::getDescriptionForLanguage($row['description']) . '</td>';
+            $table .= '<td class="centered" ' . $configuration_warning . '</td>';
+            $table .= '<td class="justified">' . $description . '</td>';
             $table .= '<td class="centered">';
             $table .= $vulnerableInstances[$id];
             $table .= '</td>';
