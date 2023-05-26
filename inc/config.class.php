@@ -66,7 +66,7 @@ class PluginNvdConfig extends CommonGLPI {
         }
 
         $out .= '<input required type="text" name="newApiKey" value="' . $currentApiKey . '">';
-        $out .= '<input type="submit" value="' . __('Set NVD Api Key') . '">';
+        $out .= '<input type="submit" class="btn btn-primary" value="' . __('Set NVD Api Key') . '">';
         $out .= '</form>';
 
         echo $out;

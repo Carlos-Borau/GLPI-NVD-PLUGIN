@@ -497,7 +497,7 @@ class PluginNvdVuln extends CommonDBTM {
         // If no vulnerabilities are found do not display anything
         if (!$vulnerableInstances) { return; }
 
-        $table =    '<table class="center">';
+        $table =    '<table class="center vuln-table">';
         $table .=   '<colgroup><col width="10%"/><col width="5%"/><col width="15%"/><col width="5%"/><col width="55%"/><col width="10%"/></colgroup>';
         $table .=   '<tr>';
         $table .=   '<th class="centered">' . __('Severity') . '</th>';

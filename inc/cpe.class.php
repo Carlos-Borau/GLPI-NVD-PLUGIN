@@ -121,6 +121,8 @@ class PluginNvdCpe {
      * @return array  
      */
     public static function getVendorSugestedSearchTerms($vendorName) {
+
+        if (is_null($vendorName)) { return []; }
         
         // CPE names are allways lowercase
         $vendorName = strtolower($vendorName);
@@ -151,6 +153,8 @@ class PluginNvdCpe {
      * @return array  
      */
     public static function getProductSugestedSearchTerms($productName, $vendor_terms) {
+
+        if (is_null($productName)) { return []; }
 
         // CPE names are allways lowercase
         $productName = strtolower($productName);

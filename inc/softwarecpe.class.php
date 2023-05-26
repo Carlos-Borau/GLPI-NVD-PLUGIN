@@ -112,11 +112,14 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
                                                                 'glpi_manufacturers' => 'id']]],
         'WHERE' => ['glpi_softwares.id' => $item->getID()]]);
 
-        $row = $res->current();
+        if ($res->numrows() == 1) {
+            
+            $row = $res->current();
 
-        $vendor_GLPI_name = $row['vendor'];
-        $product_GLPI_name = $row['product'];
-        
+            $vendor_GLPI_name = $row['vendor'];
+            $product_GLPI_name = $row['product'];
+        }
+
         // Print current CPE associations for given software
         self::printCurrentCPEAssociation($vendor_name, $product_name);
 
@@ -128,6 +131,9 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
 
         // Print separator
         self::printHorizontalSeparator();
+
+        // Print hidden elements
+        self::printHiddenElements($vendors);
 
         // Print form header and hidden fields
         self::printFormHeader($action, $item->getID());
@@ -217,7 +223,13 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         $out .= '<div class="nvd_cpe_row">';
         $out .= '<div><b class="nvd_cpe_title">' . __('Sugested vendor terms: ') . '</b></div></div>';
         $out .= '<div class="nvd_cpe_row">';
-        $out .= '<div>' . implode(' ', $sugested_vendor_terms) . '</div></div></div>';
+        $out .= '<div><select name="vendor_terms" id="nvd_cpe_vendor_terms_dropdown" class="nvd_cpe_wide_dropdown">';
+        $out .= '<option disabled selected value>-- ' . __('SELECT TERM TO FILTER VENDORS BY') . ' --</option>';
+        foreach ($sugested_vendor_terms as $term) {
+
+            $out .= '<option ' . "value=\"$term\">$term</option>";
+        }
+        $out .= '</select></div></div></div>';
 
         // Vertical separator
         $out .= '<div class="vertical_ruler"></div>';
@@ -227,7 +239,13 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         $out .= '<div class="nvd_cpe_row">';
         $out .= '<div><b class="nvd_cpe_title">' . __('Sugested product terms: ') . '</b></div></div>';
         $out .= '<div class="nvd_cpe_row">';
-        $out .= '<div>' . implode(' ', $sugested_product_terms) . '</div></div></div></div>';
+        $out .= '<div><select name="product_terms" id="nvd_cpe_product_terms_dropdown" class="nvd_cpe_wide_dropdown">';
+        $out .= '<option disabled selected value>-- ' . __('SELECT TERM TO FILTER PRODUCTS BY') . ' --</option>';
+        foreach ($sugested_product_terms as $term) {
+
+            $out .= '<option ' . "value=\"$term\">$term</option>";
+        }
+        $out .= '</select></div></div></div></div>';
 
         echo $out;
     }
@@ -249,6 +267,23 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         $out .= Html::hidden('_glpi_csrf_token', array('value' => Session::getNewCSRFToken()));
         $out .= Html::hidden('action', array('value' => $action));
         $out .= Html::hidden('softwares_id', array('value' => $ItemID));
+
+        echo $out;
+    }
+
+    /**
+     * Create hidden vendor and product lists to allow later filtering
+     *
+     * @since 1.0.0
+     *
+     * @param array     $vendors            List of available vendors retrieved from CVE API
+     *
+     * @return void
+     */
+    private static function printHiddenElements($vendors) {
+
+        $out  = '<p id="vendor_hidden_list" hidden>' . implode(' ', $vendors) . '</p>';
+        $out .= '<p id="product_hidden_list" hidden></p>';
 
         echo $out;
     }
@@ -312,11 +347,11 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
 
         // Submit button
         $out =  '<div class="nvd_cpe_div">';
-        $out .= '<input class="button" type="submit" value="' . __('Update CPE Associations') . '">';
+        $out .= '<input class="button btn btn-primary" type="submit" value="' . __('Update CPE Associations') . '">';
         $out .= '</div></form>';
 
         // Javascript event listener
-        $out .= '<script>addEventListenerToVendorSelect();</script>';
+        $out .= '<script>addEventListeners();</script>';
 
         echo $out;
     }
