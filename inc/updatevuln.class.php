@@ -241,7 +241,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
                 $exploit_score = null;
                 $impact_score = null;
 
-                if (isset($record['metrics'][0][0])) {
+                if (isset($record['metrics'])) {
 
                     $main_metrics = array_values($record['metrics'])[0][0];
 
