@@ -127,7 +127,7 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         self::printHorizontalSeparator();
 
         // Print sugested search terms for given software's vendor and product names
-        self::printSugestedSearchTerms($vendor_GLPI_name, $product_GLPI_name);
+        self::printFilters($vendor_GLPI_name, $product_GLPI_name);
 
         // Print separator
         self::printHorizontalSeparator();
@@ -196,6 +196,7 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
 
     /**
      * Display sugested search terms for given software's CPE vendor and product names
+     * and filter textboxes to filter available vendors and products by.
      * 
      * Takes the software's manufacturer and software names stored by GLPI and leaves 
      * only the most relevant parts, displayed from longest to shortest as sugestions
@@ -208,7 +209,7 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
      *
      * @return void
      */
-    private static function printSugestedSearchTerms($vendor_name, $product_name) {
+    private static function printFilters($vendor_name, $product_name) {
 
         // Get sugested vendor search terms for given software
         $sugested_vendor_terms  = PluginNvdCpe::getVendorSugestedSearchTerms($vendor_name);
@@ -218,34 +219,52 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
 
         $out =  '<div class="nvd_cpe_div">';
 
-        // Vendor terms
-        $out .= '<div class="nvd_cpe_collumn">';
-        $out .= '<div class="nvd_cpe_row">';
-        $out .= '<div><b class="nvd_cpe_title">' . __('Sugested vendor terms: ') . '</b></div></div>';
+        // Vendor terms and filter
+        $out .= '<div class="nvd_cpe_stack_collumn">';
+        $out .= '<div class="nvd_cpe_stack_row">';
+        $out .= '<div><b class="nvd_cpe_title">' . __('Filter vendors: ') . '</b></div></div>';
+        $out .= '<div class="nvd_cpe_stack_row">';
+        $out .= '<div class="nvd_cpe_row"><div><b class="nvd_cpe_subtitle">' . __('Sugested terms') . ': </b></div></div>';
         $out .= '<div class="nvd_cpe_row">';
         $out .= '<div><select name="vendor_terms" id="nvd_cpe_vendor_terms_dropdown" class="nvd_cpe_wide_dropdown">';
-        $out .= '<option disabled selected value>-- ' . __('SELECT TERM TO FILTER VENDORS BY') . ' --</option>';
+        $out .= '<option disabled selected value="-DEFAULT-">-- ' . __('SELECT TERM TO FILTER VENDORS BY') . ' --</option>';
         foreach ($sugested_vendor_terms as $term) {
 
             $out .= '<option ' . "value=\"$term\">$term</option>";
         }
         $out .= '</select></div></div></div>';
+        $out .= '<div class="nvd_cpe_stack_row">';
+        $out .= '<div class="nvd_cpe_row"><div><b class="nvd_cpe_subtitle">' . __('Current filter') . ': </b></div></div>';
+        $out .= '<div class="nvd_cpe_row">';
+        $out .= '<div><input type="text" name="vendor_filter" id="nvd_cpe_vendor_filter" class="nvd_cpe_textinput"></input></div></div>';
+        $out .= '<div class="nvd_cpe_row"><button id="nvd_cpe_apply_vendor_filter" class="btn btn-success" type="submit">' . __('Apply') . '</button></div>';
+        $out .= '<div class="nvd_cpe_row"><button id="nvd_cpe_clear_vendor_filter" class="btn btn-danger" type="reset">' . __('Clear') . '</button></div>';
+        $out .= '</div></div>';
 
         // Vertical separator
         $out .= '<div class="vertical_ruler"></div>';
 
-        // Product terms
-        $out .= '<div class="nvd_cpe_collumn">';
-        $out .= '<div class="nvd_cpe_row">';
-        $out .= '<div><b class="nvd_cpe_title">' . __('Sugested product terms: ') . '</b></div></div>';
+        // Product terms and filter
+        $out .= '<div class="nvd_cpe_stack_collumn">';
+        $out .= '<div class="nvd_cpe_stack_row">';
+        $out .= '<div><b class="nvd_cpe_title">' . __('Filter products') . ': </b></div></div>';
+        $out .= '<div class="nvd_cpe_stack_row">';
+        $out .= '<div class="nvd_cpe_row"><div><b class="nvd_cpe_subtitle">' . __('Sugested terms') . ': </b></div></div>';
         $out .= '<div class="nvd_cpe_row">';
         $out .= '<div><select name="product_terms" id="nvd_cpe_product_terms_dropdown" class="nvd_cpe_wide_dropdown">';
-        $out .= '<option disabled selected value>-- ' . __('SELECT TERM TO FILTER PRODUCTS BY') . ' --</option>';
+        $out .= '<option disabled selected value="-DEFAULT-">-- ' . __('SELECT TERM TO FILTER PRODUCTS BY') . ' --</option>';
         foreach ($sugested_product_terms as $term) {
 
             $out .= '<option ' . "value=\"$term\">$term</option>";
         }
-        $out .= '</select></div></div></div></div>';
+        $out .= '</select></div></div></div>';
+        $out .= '<div class="nvd_cpe_stack_row">';
+        $out .= '<div class="nvd_cpe_row"><div><b class="nvd_cpe_subtitle">' . __('Current filter') . ': </b></div></div>';
+        $out .= '<div class="nvd_cpe_row">';
+        $out .= '<div><input type="text" name="product_filter" id="nvd_cpe_product_filter" class="nvd_cpe_textinput"></input></div></div>';
+        $out .= '<div class="nvd_cpe_row"><button id="nvd_cpe_apply_product_filter" class="btn btn-success" type="submit">' . __('Apply') . '</button></div>';
+        $out .= '<div class="nvd_cpe_row"><button id="nvd_cpe_clear_product_filter" class="btn btn-danger" type="reset">' . __('Clear') . '</button></div>';
+        $out .= '</div></div></div>';
 
         echo $out;
     }
@@ -310,7 +329,7 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         $out .= '<div><b class="nvd_cpe_title">' . __('Available Vendors: ') . '</b></div></div>';
         $out .= '<div class="nvd_cpe_row">';
         $out .= '<div><select name="vendor" id="nvd_cpe_vendor_dropdown" class="nvd_cpe_dropdown" required>';
-        $out .= '<option disabled ' . (($selected_vendor==NULL) ? 'selected ' : '') . ' value>-- ' . __('SELECT A VENDOR') . ' --</option>';
+        $out .= '<option disabled ' . (($selected_vendor==NULL) ? 'selected ' : '') . ' value="-DEFAULT-">-- ' . __('SELECT A VENDOR') . ' --</option>';
         foreach ($vendors as $vendor) {
 
             $out .= '<option ' . (($selected_vendor==$vendor) ? 'selected ' : '') . "value=\"$vendor\">$vendor</option>";
@@ -326,7 +345,7 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         $out .= '<div><b class="nvd_cpe_title">' . __('Available Products:') . '</b></div></div>';
         $out .= '<div class="nvd_cpe_row">';
         $out .= '<div><select name="product" id="nvd_cpe_product_dropdown" class="nvd_cpe_dropdown" required>';
-        $out .= '<option disabled ' . (($selected_product==NULL) ? 'selected ' : '') . ' value>-- ' . __('SELECT A PRODUCT') . ' --</option>';
+        $out .= '<option disabled ' . (($selected_product==NULL) ? 'selected ' : '') . ' value="-DEFAULT-">-- ' . __('SELECT A PRODUCT') . ' --</option>';
         foreach ($products as $product) {
 
             $out .= '<option ' . (($selected_product==$product) ? 'selected ' : '') . "value=\"$product\">$product</option>";

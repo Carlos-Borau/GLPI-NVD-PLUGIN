@@ -35,7 +35,14 @@
     display: flex;
     flex-basis: 100%;
     justify-content: center;
-    margin-right: 5px;
+    margin: 5px;
+}
+
+.nvd_cpe_stack_collumn {
+    display: block;
+    flex-basis: 100%;
+    justify-content: center;
+    margin: 5px;
 }
 
 .vertical_ruler {
@@ -57,6 +64,16 @@
     text-align: center;
 }
 
+.nvd_cpe_stack_row {
+    display: flex;
+    float: none;
+    height: auto;
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
 .nvd_cpe_row div {
     display: table-cell;
     vertical-align: middle;
@@ -70,6 +87,10 @@
     font-size: 1.3vw;
 }
 
+.nvd_cpe_subtitle {
+    font-size: 1.0vw;
+}
+
 .nvd_cpe_name {
     font-size: 1vw;
 }
@@ -80,4 +101,8 @@
 
 .nvd_cpe_wide_dropdown {
     width: 19vw;
+}
+
+.nvd_cpe_textinput {
+    width: 15vw;
 }
