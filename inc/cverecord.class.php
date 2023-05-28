@@ -88,7 +88,7 @@ class PluginNvdCverecord {
 
         if ($res->numrows() > 0) {
 
-            $warning = 'title="';
+            $warning .= 'onclick="alert(\'';
 
             if ($isSoftware) {
 
@@ -99,24 +99,24 @@ class PluginNvdCverecord {
                 $target_sw  = $row['target_sw'];
                 $target_hw  = $row['target_hw'];
 
-                $warning .= __('Some of the CPE configurations for this software that are associated with this vulnerability&#10;may contain some constrains on the following CPE attributes:');
+                $warning .= __('Some of the CPE configurations for this software that are associated with this vulnerability\nmay contain some constrains on the following CPE attributes:');
                             
-                if (!is_null($update)) { $warning .= '&#10; - update: ' . $update; }
-                if (!is_null($edition)) { $warning .= '&#10; - sw_edition: ' . $edition; }
-                if (!is_null($target_sw)) { $warning .= '&#10; - target_sw: ' . $target_sw; }
-                if (!is_null($target_hw)) { $warning .= '&#10; - target_hw: ' . $target_hw; }
+                if (!is_null($update)) { $warning .= '\n - update: ' . $update; }
+                if (!is_null($edition)) { $warning .= '\n - sw_edition: ' . $edition; }
+                if (!is_null($target_sw)) { $warning .= '\n - target_sw: ' . $target_sw; }
+                if (!is_null($target_hw)) { $warning .= '\n - target_hw: ' . $target_hw; }
 
             } else {
 
-                $warning .= __('Some of the CPE configurations that are associated with this vulnerability&#10;may contain some constrains on their CPE attributes.');
+                $warning .= __('Some of the CPE configurations that are associated with this vulnerability\nmay contain some constrains on their CPE attributes.');
             }
 
-            $warning .= '">' . $warning_char;
+            $warning .= '\')">' . $warning_char;
 
             return $warning;
         }
         
-        return '';
+        return '>';
     }
 }
 

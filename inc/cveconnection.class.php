@@ -9,6 +9,8 @@ class PluginNvdCveconnection extends PluginNvdConnection {
      * 
      * @since 1.0.0
      * 
+     * @param string $vendor    CPE vendor name
+     * 
      * @return void 
      */
     public function __construct($vendor = NULL) {

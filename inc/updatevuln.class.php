@@ -80,7 +80,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         $apiKey = self::getNvdApiKey();
 
         // Get next vulnerability ID from database
-        $nextVulnID = self::getNextVulnId();
+        $nextVulnID = PluginNvdDatabaseutils::getNextId('glpi_plugin_nvd_vulnerabilities');
 
         // If no API Key is set the task can't proceed
         if (is_null($apiKey)) { return false; }
@@ -369,35 +369,6 @@ class PluginNvdUpdatevuln extends CommonGLPI {
     }
 
     /**
-     * Queries the GLPI database and returns the current autoincrement value for the table 
-     * glpi_plugin_nvd_vulnerabilities
-     * 
-     * @since 1.0.0
-     * 
-     * @return int    autoincrement value
-     */
-    private static function getNextVulnId() {
-
-        global $DB;
-
-        /***********************************************************************************************
-         * Request MAX id from glpi_plugin_nvd_vulnerabilities
-         * 
-         *  SELECT AUTO_INCREMENT
-         *  FROM INFORMATION_SCHEMA.TABLES
-         *  WHERE TABLE_SCHEMA = glpi AND TABLE_NAME = glpi_plugin_nvd_vulnerabilities
-         **********************************************************************************************/
-        $res = $DB->request(['SELECT' => 'AUTO_INCREMENT',
-                             'FROM' => 'INFORMATION_SCHEMA.TABLES',
-                             'WHERE' => ['TABLE_SCHEMA' => 'glpi',
-                                         'TABLE_NAME' => 'glpi_plugin_nvd_vulnerabilities']]);
-
-        $row = $res->current();
-
-        return $row['AUTO_INCREMENT'];
-    }
-
-    /**
      * Queries the GLPI database and returns the IDs of all installed software versions
      * 
      * @since 1.0.0
@@ -447,6 +418,16 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         return PluginNvdDatabaseutils::pushResToArray($res, $column);
     }
 
+    /**
+     * Removes vulnearable software versions no longer present on any device managed by GLPI
+     * 
+     * @since 1.0.0
+     * 
+     * @param array $allVersions    Every software version present on any device managed by GLPI
+     * @param array $vulnVersions   Every software version on the glpi_plugin_nvd_vulnerable_versions table
+     * 
+     * @return void
+     */
     private static function removeOldVulnerableVersions($allVersions, $vulnVersions) {
 
         global $DB;

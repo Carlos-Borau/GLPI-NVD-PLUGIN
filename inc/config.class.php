@@ -46,7 +46,6 @@ class PluginNvdConfig extends CommonGLPI {
         return true;
     }
 
-
     /**
      * Display tab content for config tab
      *
@@ -77,7 +76,7 @@ class PluginNvdConfig extends CommonGLPI {
      *
      * @since 1.0.0
      *
-     * @return void
+     * @return string Current NVD API key
      */
     private static function getCurrentApiKey() {
 

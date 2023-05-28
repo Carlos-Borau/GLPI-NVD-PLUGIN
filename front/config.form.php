@@ -18,6 +18,16 @@ if (isset($_POST['newApiKey'])) {
 
 Html::redirect("{$CFG_GLPI['root_doc']}/front/config.form.php");
 
+/**
+ * Update NVD API key on plugin config
+ *
+ * @since 1.0.0
+ *
+ * @param string $newApiKey    New NVD API key
+ * @param string $oldApiKey    Old NVD API key
+ *
+ * @return void
+ */
 function updateApiKey($newApiKey, $oldApiKey) {
 
     global $DB;
@@ -41,4 +51,5 @@ function updateApiKey($newApiKey, $oldApiKey) {
         );
     }
 }
+
 ?>

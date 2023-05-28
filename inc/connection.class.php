@@ -82,7 +82,7 @@ class PluginNvdConnection {
      * 
      * @since 1.0.0
      * 
-     * @return string 
+     * @return array
      */
     private function getRequestHeaders() {
 

@@ -63,7 +63,40 @@ class PluginNvdDatabaseutils {
         return $array;
     }
 
-    
+    /**
+     * Queries the GLPI database and returns the current autoincrement value for the given table 
+     * 
+     * @since 1.0.0
+     * 
+     * @param string $table     Name of the table for which to query the autoincrement value 
+     * 
+     * @return int
+     */
+    public static function getNextId($table) {
+
+        global $DB;
+
+        /***********************************************************************************************
+         * Request autoincrement value for $table
+         * 
+         *  SELECT AUTO_INCREMENT
+         *  FROM INFORMATION_SCHEMA.TABLES
+         *  WHERE TABLE_SCHEMA = glpi AND TABLE_NAME = $table
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => 'AUTO_INCREMENT',
+                             'FROM' => 'INFORMATION_SCHEMA.TABLES',
+                             'WHERE' => ['TABLE_SCHEMA' => 'glpi',
+                                         'TABLE_NAME' => $table]]);
+
+        if ($res->numrows() == 1) {
+
+            $row = $res->current();
+            
+            return $row['AUTO_INCREMENT'];
+        }
+        
+        return null;
+    }
 }
 
 ?>

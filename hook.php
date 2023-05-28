@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Install hook
  *
@@ -26,3 +27,5 @@ function plugin_nvd_uninstall() {
 
    return true;
 }
+
+?>

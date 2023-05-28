@@ -32,11 +32,6 @@ function plugin_init_nvd() {
       [Software::class
    ]]);
 
-   Plugin::registerClass(PluginNvdCpe::class);
-   Plugin::registerClass(PluginNvdConnection::class);
-   Plugin::registerClass(PluginNvdNvdconnection::class);
-   Plugin::registerClass(PluginNvdCpeconnection::class);
-
    Plugin::registerClass(PluginNvdUpdatevuln::class, ['addtabon' =>
       [Central::class
    ]]);
