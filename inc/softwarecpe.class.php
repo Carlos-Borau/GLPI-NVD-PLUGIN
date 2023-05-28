@@ -132,9 +132,6 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         // Print separator
         self::printHorizontalSeparator();
 
-        // Print hidden elements
-        self::printHiddenElements($vendors);
-
         // Print form header and hidden fields
         self::printFormHeader($action, $item->getID());
 
@@ -237,7 +234,7 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         $out .= '<div class="nvd_cpe_row"><div><b class="nvd_cpe_subtitle">' . __('Current filter') . ': </b></div></div>';
         $out .= '<div class="nvd_cpe_row">';
         $out .= '<div><input type="text" name="vendor_filter" id="nvd_cpe_vendor_filter" class="nvd_cpe_textinput"></input></div></div>';
-        $out .= '<div class="nvd_cpe_row"><button id="nvd_cpe_apply_vendor_filter" class="btn btn-success" type="submit">' . __('Apply') . '</button></div>';
+        $out .= '<div class="nvd_cpe_row"><button id="nvd_cpe_apply_vendor_filter" class="btn btn-info" type="submit">' . __('Apply') . '</button></div>';
         $out .= '<div class="nvd_cpe_row"><button id="nvd_cpe_clear_vendor_filter" class="btn btn-danger" type="reset">' . __('Clear') . '</button></div>';
         $out .= '</div></div>';
 
@@ -262,7 +259,7 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         $out .= '<div class="nvd_cpe_row"><div><b class="nvd_cpe_subtitle">' . __('Current filter') . ': </b></div></div>';
         $out .= '<div class="nvd_cpe_row">';
         $out .= '<div><input type="text" name="product_filter" id="nvd_cpe_product_filter" class="nvd_cpe_textinput"></input></div></div>';
-        $out .= '<div class="nvd_cpe_row"><button id="nvd_cpe_apply_product_filter" class="btn btn-success" type="submit">' . __('Apply') . '</button></div>';
+        $out .= '<div class="nvd_cpe_row"><button id="nvd_cpe_apply_product_filter" class="btn btn-info" type="submit">' . __('Apply') . '</button></div>';
         $out .= '<div class="nvd_cpe_row"><button id="nvd_cpe_clear_product_filter" class="btn btn-danger" type="reset">' . __('Clear') . '</button></div>';
         $out .= '</div></div></div>';
 
@@ -286,23 +283,6 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         $out .= Html::hidden('_glpi_csrf_token', array('value' => Session::getNewCSRFToken()));
         $out .= Html::hidden('action', array('value' => $action));
         $out .= Html::hidden('softwares_id', array('value' => $ItemID));
-
-        echo $out;
-    }
-
-    /**
-     * Create hidden vendor and product lists to allow later filtering
-     *
-     * @since 1.0.0
-     *
-     * @param array     $vendors            List of available vendors retrieved from CVE API
-     *
-     * @return void
-     */
-    private static function printHiddenElements($vendors) {
-
-        $out  = '<p id="vendor_hidden_list" hidden>' . implode(' ', $vendors) . '</p>';
-        $out .= '<p id="product_hidden_list" hidden></p>';
 
         echo $out;
     }
