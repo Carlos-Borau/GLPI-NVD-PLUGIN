@@ -15,11 +15,11 @@ function addEventListeners() {
     addSugestedTermsEventListener(selectVendorTerms, filterVendor);
     addSugestedTermsEventListener(selectProductTerms, filterProduct);
 
-    addFilterApplyEventListener(filterVendor, applyVendorFilter, selectVendor, vendorHiddenList, selectProduct, productHiddenList);
-    addFilterApplyEventListener(filterProduct, applyProductFilter, selectProduct, productHiddenList);
+    addFilterApplyEventListener(filterVendor, selectVendorTerms, applyVendorFilter, selectVendor, vendorHiddenList, filterProduct, selectProductTerms, selectProduct, productHiddenList);
+    addFilterApplyEventListener(filterProduct, selectProductTerms, applyProductFilter, selectProduct, productHiddenList);
 
-    addFilterClearEventListener(selectVendorTerms, filterVendor, clearVendorFilter, selectVendor, vendorHiddenList, selectProduct, productHiddenList);
-    addFilterClearEventListener(selectProductTerms, filterProduct, clearProductFilter, selectProduct, productHiddenList);
+    addFilterClearEventListener(filterVendor, selectVendorTerms, clearVendorFilter, selectVendor, vendorHiddenList, filterProduct, selectProductTerms, selectProduct, productHiddenList);
+    addFilterClearEventListener(filterProduct, selectProductTerms, clearProductFilter, selectProduct, productHiddenList);
 
     selectVendor.addEventListener("change", function(){
 
@@ -61,7 +61,7 @@ function addSugestedTermsEventListener(select, filter) {
     });
 }
 
-function addFilterApplyEventListener(filter, apply, select, hiddenList, otherSelect=null, otherHiddenList=null) {
+function addFilterApplyEventListener(filter, filterSelect, apply, select, hiddenList, otherFilter=null, otherFilterSelect=null, otherSelect=null, otherHiddenList=null) {
 
     apply.addEventListener("click", function(){
 
@@ -79,17 +79,17 @@ function addFilterApplyEventListener(filter, apply, select, hiddenList, otherSel
                 addOption(select, item);
              }
         })
+
+        resetFilters(filter, filterSelect, otherFilter, otherFilterSelect);
     });
 }
 
-function addFilterClearEventListener(filterSelect, filter, clear, select, hiddenList, otherSelect=null, otherHiddenList=null) {
+function addFilterClearEventListener(filter, filterSelect, clear, select, hiddenList, otherFilter=null, otherFilterSelect=null, otherSelect=null, otherHiddenList=null) {
 
     clear.addEventListener("click", function(){
 
-        filter.value = "";
-        filterSelect.value = "-DEFAULT-";
-
         resetSelects(select, otherSelect, otherHiddenList);
+        resetFilters(filter, filterSelect, otherFilter, otherFilterSelect, true);
 
         var items = hiddenList.innerHTML.split(" ");
 
@@ -109,13 +109,29 @@ function addOption(select, value) {
     select.appendChild(option);
 }
 
-function resetSelects(select, otherSelect, otherHiddenList) {
+function resetSelects(select, otherSelect, otherHiddenList=null) {
 
     select.innerHTML = select.firstChild.outerHTML;
+    select.value = '-DEFAULT-';
 
     if (otherSelect !== null && otherHiddenList !== null) {
         otherSelect.innerHTML = otherSelect.firstChild.outerHTML;
+        otherSelect.value = '-DEFAULT-';
         otherHiddenList.innerHTML = '';
+    }
+}
+
+function resetFilters(filter, filterSelect, otherFilter, otherFilterSelect, removeFilterText=false) {
+
+    filterSelect.value = '-DEFAULT-';
+
+    if (removeFilterText) {
+        filter.value = '';
+    }
+
+    if (otherFilter !== null && otherFilterSelect !== null){
+        otherFilterSelect.value = '-DEFAULT-';
+        otherFilter.value = '';
     }
 }
 
