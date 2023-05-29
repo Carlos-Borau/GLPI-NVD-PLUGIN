@@ -9,15 +9,17 @@ function addEventListeners() {
     var applyProductFilter  = document.getElementById("nvd_cpe_apply_product_filter");
     var clearVendorFilter   = document.getElementById("nvd_cpe_clear_vendor_filter");
     var clearProductFilter  = document.getElementById("nvd_cpe_clear_product_filter");
+    var vendorHiddenList    = document.getElementById("nvd_cpe_vendor_hidden_list");
+    var productHiddenList   = document.getElementById("nvd_cpe_product_hidden_list");
 
     addSugestedTermsEventListener(selectVendorTerms, filterVendor);
     addSugestedTermsEventListener(selectProductTerms, filterProduct);
 
-    addFilterApplyEventListener(filterVendor, applyVendorFilter, selectVendor, selectProduct);
-    addFilterApplyEventListener(filterProduct, applyProductFilter, selectProduct);
+    addFilterApplyEventListener(filterVendor, applyVendorFilter, selectVendor, vendorHiddenList, selectProduct, productHiddenList);
+    addFilterApplyEventListener(filterProduct, applyProductFilter, selectProduct, productHiddenList);
 
-    addFilterClearEventListener(selectVendorTerms, filterVendor, clearVendorFilter, selectVendor, selectProduct);
-    addFilterClearEventListener(selectProductTerms, filterProduct, clearProductFilter, selectProduct);
+    addFilterClearEventListener(selectVendorTerms, filterVendor, clearVendorFilter, selectVendor, vendorHiddenList, selectProduct, productHiddenList);
+    addFilterClearEventListener(selectProductTerms, filterProduct, clearProductFilter, selectProduct, productHiddenList);
 
     selectVendor.addEventListener("change", function(){
 
@@ -31,14 +33,16 @@ function addEventListeners() {
 
                 selectProduct.innerHTML = selectProduct.firstChild.outerHTML;
 
+                var prodList = '';
+
                 for (product of response){
 
-                    var option = document.createElement('option');
-                    option.value = product;
-                    option.innerHTML = product;
+                    prodList += `${product} `;
 
-                    selectProduct.appendChild(option);
+                    addOption(selectProduct, product);
                 }
+
+                productHiddenList.innerHTML = prodList;
             }
         }
 
@@ -57,47 +61,62 @@ function addSugestedTermsEventListener(select, filter) {
     });
 }
 
-function addFilterApplyEventListener(filter, apply, select, otherSelect=null) {
+function addFilterApplyEventListener(filter, apply, select, hiddenList, otherSelect=null, otherHiddenList=null) {
 
     apply.addEventListener("click", function(){
 
-        select.value = "-DEFAULT-";
-
-        if (otherSelect !== null) {
-            otherSelect.innerHTML = otherSelect.firstChild.outerHTML;
-        }
+        resetSelects(select, otherSelect, otherHiddenList);
 
         var term = filter.value;
         var pattern = new RegExp(".*" + escapeRegExp(term) + ".*");
-        
-        var values = [...document.querySelectorAll(`#${select.id} option`)].slice(1);
 
-        values.forEach(opt => {
+        var items = hiddenList.innerHTML.split(" ");
 
-            opt.style.display = pattern.test(opt.value) ? "block" : "none";
-        });
+        items.forEach(item => {
+
+            if (pattern.test(item)) { 
+
+                addOption(select, item);
+             }
+        })
     });
 }
 
-function addFilterClearEventListener(filterSelect, filter, clear, select, otherSelect=null) {
+function addFilterClearEventListener(filterSelect, filter, clear, select, hiddenList, otherSelect=null, otherHiddenList=null) {
 
     clear.addEventListener("click", function(){
 
         filter.value = "";
         filterSelect.value = "-DEFAULT-";
-        select.value = "-DEFAULT-";
 
-        if (otherSelect !== null) {
-            otherSelect.innerHTML = otherSelect.firstChild.outerHTML;
-        }
-        
-        var values = [...document.querySelectorAll(`#${select.id} option`)].slice(1);
+        resetSelects(select, otherSelect, otherHiddenList);
 
-        values.forEach(opt => {
+        var items = hiddenList.innerHTML.split(" ");
 
-            opt.style.display = "block";
-        });
+        items.forEach(item => {
+
+            addOption(select, item);
+        })
     });
+}
+
+function addOption(select, value) {
+
+    var option = document.createElement('option');
+    option.value = value;
+    option.innerHTML = value;
+
+    select.appendChild(option);
+}
+
+function resetSelects(select, otherSelect, otherHiddenList) {
+
+    select.innerHTML = select.firstChild.outerHTML;
+
+    if (otherSelect !== null && otherHiddenList !== null) {
+        otherSelect.innerHTML = otherSelect.firstChild.outerHTML;
+        otherHiddenList.innerHTML = '';
+    }
 }
 
 function escapeRegExp(string) {

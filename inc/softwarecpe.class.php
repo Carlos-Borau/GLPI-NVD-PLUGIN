@@ -303,6 +303,10 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
 
         $out =  '<div class="nvd_cpe_div">';
 
+        // Hidden vendor and product lists
+        $out .= '<p id="nvd_cpe_vendor_hidden_list" hidden>' . implode(' ', $vendors) . '</p>';
+        $out .= '<p id="nvd_cpe_product_hidden_list" hidden></p>';
+
         // Vendor dropdown
         $out .= '<div class="nvd_cpe_collumn">';
         $out .= '<div class="nvd_cpe_row">';
