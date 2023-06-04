@@ -97,6 +97,80 @@ class PluginNvdDatabaseutils {
         
         return null;
     }
+
+    /**
+     * Transform OS related info IDs to actual values
+     * 
+     * @since 1.0.0
+     * 
+     * @param array $row Array containing OS name, version and kernel version IDs on the GLPI database
+     * 
+     * @return array    Array containing OS name, version, kernel and kernel version
+     */
+    public static function requestOSdata($row) {
+
+        global $DB;
+
+        $OS_ID                  = $row['operatingsystems_id'];
+        $OS_version_ID          = $row['operatingsystemversions_id'];
+        $OS_kernel_version_ID   = $row['operatingsystemkernelversions_id'];
+
+        /***********************************************************************************************
+         * Request operating system name
+         * 
+         *  SELECT name
+         *  FROM glpi_operatingsystems
+         *  WHERE id = $OS_ID
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => 'name',
+                             'FROM' => 'glpi_operatingsystems',
+                             'WHERE' => ['id' => $OS_ID]]);
+
+        $name = ($res->current())['name'];
+
+        /***********************************************************************************************
+         * Request operating system version
+         * 
+         *  SELECT name
+         *  FROM glpi_operatingsystemversions
+         *  WHERE id = $OS_version_ID
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => 'name',
+                             'FROM' => 'glpi_operatingsystemversions',
+                             'WHERE' => ['id' => $OS_version_ID]]);
+
+        $version = ($res->current())['name'];
+
+        /***********************************************************************************************
+         * Request operating system version
+         * 
+         *  SELECT name, glpi_operatingsystemkernelversions
+         *  FROM glpi_operatingsystemkernelversions
+         *  WHERE id = $OS_kernel_version_ID
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => ['name', 'operatingsystemkernels_id'],
+                             'FROM' => 'glpi_operatingsystemkernelversions',
+                             'WHERE' => ['id' => $OS_kernel_version_ID]]);
+
+        $row = $res->current();
+        $kernel_version = $row['name'];
+        $OS_kernel_ID = $row['operatingsystemkernels_id'];
+
+        /***********************************************************************************************
+         * Request operating system kernel
+         * 
+         *  SELECT name
+         *  FROM glpi_operatingsystemkernels
+         *  WHERE id = $OS_kernel_ID
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => 'name',
+                             'FROM' => 'glpi_operatingsystemkernels',
+                             'WHERE' => ['id' => $OS_kernel_ID]]);
+
+        $kernel = ($res->current())['name'];
+
+        return [$name, $version, $kernel, $kernel_version];
+    }
 }
 
 ?>

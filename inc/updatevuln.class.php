@@ -89,22 +89,22 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         $CVEs = self::getKnownCVEs();
 
         // Update vulnerabilities related to software applications
-        // self::updateSoftwareVulnerabilities($apiKey, $nextVulnID, $CVEs);
+        self::updateSoftwareVulnerabilities($apiKey, $nextVulnID, $CVEs);
 
         // CVE IDs associated with some software versions
-        // $installedSoftwareVulnerabilities = self::requestAllVulnerableVersions('glpi_plugin_nvd_vulnerable_software_versions', 'vuln_id');
+        $installedSoftwareVulnerabilities = self::requestAllVulnerableVersions('glpi_plugin_nvd_vulnerable_software_versions', 'vuln_id');
 
         // Update vulnerabilities related to operating systems
         self::updateSystemVulnerabilities($apiKey, $nextVulnID, $CVEs);
 
         // CVE IDs associated with some operating system versions
-        // $installedSystemVulnerabilities = self::requestAllVulnerableVersions('glpi_plugin_nvd_vulnerable_system_versions', 'vuln_id');
+        $installedSystemVulnerabilities = self::requestAllVulnerableVersions('glpi_plugin_nvd_vulnerable_system_versions', 'vuln_id');
 
         // Vulnerabilities no longer present on any device managed by GLPI
-        // $oldVulnerabilities = array_diff(array_values($CVEs), $installedSoftwareVulnerabilities, $installedSystemVulnerabilities);
+        $oldVulnerabilities = array_diff(array_values($CVEs), $installedSoftwareVulnerabilities, $installedSystemVulnerabilities);
 
         // Remove vulnerabilities no longer present on any device managed by GLPI
-        // self::removeVulnerabilities($oldVulnerabilities);
+        self::removeVulnerabilities($oldVulnerabilities);
 
         return true;
     }
@@ -529,7 +529,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         
         foreach ($res as $id => $row) {
             
-            [$name, $version, $kernel, $kernelVersion] = self::requestOSdata($row);
+            [$name, $version, $kernel, $kernelVersion] = PluginNvdDatabaseutils::requestOSdata($row);
 
             $installationData = PluginNvdCpe::getOSInstallationData($name, $version, $kernel, $kernelVersion);
 
@@ -540,80 +540,6 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         }
 
         return $OSInstalations;
-    }
-
-    /**
-     * Transform OS related info IDs to actual values
-     * 
-     * @since 1.0.0
-     * 
-     * @param array $row Array containing OS name, version and kernel version IDs on the GLPI database
-     * 
-     * @return array    Array containing OS name, version, kernel and kernel version
-     */
-    private static function requestOSdata($row) {
-
-        global $DB;
-
-        $OS_ID                  = $row['operatingsystems_id'];
-        $OS_version_ID          = $row['operatingsystemversions_id'];
-        $OS_kernel_version_ID   = $row['operatingsystemkernelversions_id'];
-
-        /***********************************************************************************************
-         * Request operating system name
-         * 
-         *  SELECT name
-         *  FROM glpi_operatingsystems
-         *  WHERE id = $OS_ID
-         **********************************************************************************************/
-        $res = $DB->request(['SELECT' => 'name',
-                             'FROM' => 'glpi_operatingsystems',
-                             'WHERE' => ['id' => $OS_ID]]);
-
-        $name = ($res->current())['name'];
-
-        /***********************************************************************************************
-         * Request operating system version
-         * 
-         *  SELECT name
-         *  FROM glpi_operatingsystemversions
-         *  WHERE id = $OS_version_ID
-         **********************************************************************************************/
-        $res = $DB->request(['SELECT' => 'name',
-                             'FROM' => 'glpi_operatingsystemversions',
-                             'WHERE' => ['id' => $OS_version_ID]]);
-
-        $version = ($res->current())['name'];
-
-        /***********************************************************************************************
-         * Request operating system version
-         * 
-         *  SELECT name, glpi_operatingsystemkernelversions
-         *  FROM glpi_operatingsystemkernelversions
-         *  WHERE id = $OS_kernel_version_ID
-         **********************************************************************************************/
-        $res = $DB->request(['SELECT' => ['name', 'operatingsystemkernels_id'],
-                             'FROM' => 'glpi_operatingsystemkernelversions',
-                             'WHERE' => ['id' => $OS_kernel_version_ID]]);
-
-        $row = $res->current();
-        $kernel_version = $row['name'];
-        $OS_kernel_ID = $row['operatingsystemkernels_id'];
-
-        /***********************************************************************************************
-         * Request operating system kernel
-         * 
-         *  SELECT name
-         *  FROM glpi_operatingsystemkernels
-         *  WHERE id = $OS_kernel_ID
-         **********************************************************************************************/
-        $res = $DB->request(['SELECT' => 'name',
-                             'FROM' => 'glpi_operatingsystemkernels',
-                             'WHERE' => ['id' => $OS_kernel_ID]]);
-
-        $kernel = ($res->current())['name'];
-
-        return [$name, $version, $kernel, $kernel_version];
     }
 
     /**

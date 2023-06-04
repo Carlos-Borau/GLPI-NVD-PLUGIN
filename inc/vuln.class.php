@@ -23,27 +23,27 @@ class PluginNvdVuln extends CommonDBTM {
      */
     function getTabNameForItem(CommonGLPI $item, $withtemplate=0) {
 
-        $numVulnerabilities = 0;
+        $totalVulnerabilities = 0;
         
         switch($item::getType()) {
 
             case Software::getType():
 
-                $numVulnerabilities = self::countForSoftware($item);
+                $totalVulnerabilities = self::countForSoftware($item);
                 break;
 
             case Computer::getType():
             case Phone::getType():
 
-                $numVulnerabilities = self::countForDevice($item);
+                [$totalVulnerabilities, $NsoftwareVulns, $NsystemVulns] = self::countForDevice($item);
                 break;
 
             default:
 
-                $numVulnerabilities = self::countForDashboard();
+                [$totalVulnerabilities, $NsoftwareVulns, $NsystemVulns] = self::countForDashboard();
         }
         
-        return self::createTabEntry(__('Vulnerabilities'), $numVulnerabilities);
+        return self::createTabEntry(__('Vulnerabilities'), $totalVulnerabilities);
     }
 
     /**
@@ -86,7 +86,7 @@ class PluginNvdVuln extends CommonDBTM {
      *
      * @param CommonGLPI $item      Device item to look vulnerabilities for
      *
-     * @return int                  Number of vulnerabilities found
+     * @return array                Array containing the number of found vulnerabilities and the division between software and system vulnerabilities
      */
     private static function countForDevice(CommonGLPI $item) {
 
@@ -110,7 +110,49 @@ class PluginNvdVuln extends CommonDBTM {
                                          'WHERE' => ['items_id' => $item->getID(), 'itemtype' => $item->getType()],
                                          'GROUPBY' => 'vuln_id']);
 
-        return $res->numrows();
+        $NsoftwareVulns = $res->numrows();
+
+        $softwareVulns = PluginNvdDatabaseutils::pushResToArray($res, 'vuln_id');
+
+        /***********************************************************************************************
+         * Request operating system version for the given device
+         * 
+         *  SELECT operatingsystems_id, operatingsystemversions_id, operatingsystemkernelversions_id
+         *  FROM glpi_items_operatingsystems
+         *  WHERE items_id' = $item->getID() AND 'itemtype' = $item->getType()
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => ['operatingsystems_id', 'operatingsystemversions_id', 'operatingsystemkernelversions_id'],
+                             'FROM' => 'glpi_items_operatingsystems',
+                             'WHERE' => ['items_id' => $item->getID(), 'itemtype' => $item->getType()]]);
+
+        if ($res->numrows() == 0) { return [$NsoftwareVulns, $NsoftwareVulns, 0]; }
+
+        [$name, $version, $kernel, $kernelVersion] = PluginNvdDatabaseutils::requestOSdata($res->current());
+
+        $installationData = PluginNvdCpe::getOSInstallationData($name, $version, $kernel, $kernelVersion);
+
+        if (is_null($installationData)) { return [$NsoftwareVulns, $NsoftwareVulns, 0]; }
+
+        $configuration = $installationData['configuration'];
+
+        /***********************************************************************************************
+         * Request every operating system vulnerability associated with the given device
+         * 
+         *  SELECT vuln_id 
+         *  FROM glpi_plugin_nvd_vulnerable_system_versions
+         *  WHERE system_configuration = $configuration
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => 'vuln_id',
+                                         'FROM' => 'glpi_plugin_nvd_vulnerable_system_versions',
+                                         'WHERE' => ['system_configuration' => $configuration]]);
+
+        $NsystemVulns = $res->numrows();
+
+        $systemVulns = PluginNvdDatabaseutils::pushResToArray($res, 'vuln_id');
+
+        $totalVulns = count(array_unique(array_merge($softwareVulns, $systemVulns)));
+
+        return [$totalVulns, $NsoftwareVulns, $NsystemVulns];
     }
 
     /**
@@ -118,28 +160,45 @@ class PluginNvdVuln extends CommonDBTM {
      *
      * @since 1.0.0
      *
-     * @return int                  Number of vulnerabilities found
+     * @return array Array containing the number of found vulnerabilities and the division between software and system vulnerabilities
      */
     private static function countForDashboard() {
 
         global $DB;
 
         /***********************************************************************************************
-         * Request every vulnerability registered
+         * Request every software vulnerability registered
          * 
          *  SELECT vuln_id 
-         *  FROM glpi_plugin_nvd_vulnerable_software_versions, glpi_items_softwareversions
-         *  WHERE glpi_plugin_nvd_vulnerable_software_versions.softwareversions_id = 
-         *        glpi_items_softwareversions.softwareversions_id
+         *  FROM glpi_plugin_nvd_vulnerable_software_versions
          *  GROUP BY vuln_id
          **********************************************************************************************/
         $res = $DB->request(['SELECT' => 'vuln_id',
-                                         'FROM' => ['glpi_plugin_nvd_vulnerable_software_versions', 'glpi_items_softwareversions'],
-                                         'FKEY' => ['glpi_plugin_nvd_vulnerable_software_versions' => 'softwareversions_id',
-                                                    'glpi_items_softwareversions' => 'softwareversions_id'],
+                                         'FROM' => 'glpi_plugin_nvd_vulnerable_software_versions',
                                          'GROUPBY' => 'vuln_id']);
 
-        return $res->numrows();
+        $NsoftwareVulns = $res->numrows();
+        
+        $softwareVulns = PluginNvdDatabaseutils::pushResToArray($res, 'vuln_id');
+
+        /***********************************************************************************************
+         * Request every operating system vulnerability registered
+         * 
+         *  SELECT vuln_id 
+         *  FROM glpi_plugin_nvd_vulnerable_system_versions
+         *  GROUP BY vuln_id
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => 'vuln_id',
+                                         'FROM' => 'glpi_plugin_nvd_vulnerable_system_versions',
+                                         'GROUPBY' => 'vuln_id']);
+
+        $NsystemVulns = $res->numrows();
+
+        $systemVulns = PluginNvdDatabaseutils::pushResToArray($res, 'vuln_id');
+
+        $totalVulns = count(array_unique(array_merge($softwareVulns, $systemVulns)));
+
+        return [$totalVulns, $NsoftwareVulns, $NsystemVulns];
     }
 
     /**
@@ -165,12 +224,14 @@ class PluginNvdVuln extends CommonDBTM {
             case Computer::getType():
             case Phone::getType():
 
-                self::displayForDevice($item);
+                [$totalVulnerabilities, $NsoftwareVulns, $NsystemVulns] = self::countForDevice($item);
+                self::displayForDevice($item, $NsoftwareVulns, $NsystemVulns);
                 break;
 
             default:
 
-                self::displayForDashboard();
+                [$totalVulnerabilities, $NsoftwareVulns, $NsystemVulns] = self::countForDashboard();
+                self::displayForDashboard($NsoftwareVulns, $NsystemVulns);
         }
         
         return true;
@@ -234,7 +295,7 @@ class PluginNvdVuln extends CommonDBTM {
         $res = self::requestVulnerabilities(array_keys($vulnerabilities));
 
         //Display list of vulnerabilities associated with given software
-        self::displayVulnerabilityList($res, $vulnerabilities, __('Versions'), $filters);
+        echo self::displayVulnerabilityList($res, $vulnerabilities, __('Versions'), $filters);
     }
 
     /**
@@ -243,10 +304,12 @@ class PluginNvdVuln extends CommonDBTM {
      * @since 1.0.0
      *
      * @param CommonGLPI $item       Device item for which to display vulnerabilities
+     * @param int $NsoftwareVulns   Number of software vulnerabilities
+     * @param int $NsystemVulns     Number of operating system vulnerabilities
      *
      * @return void
      */
-    private static function displayForDevice(CommonGLPI $item) {
+    private static function displayForDevice(CommonGLPI $item, $NsoftwareVulns, $NsystemVulns) {
 
         global $DB, $CFG_GLPI;
 
@@ -305,18 +368,27 @@ class PluginNvdVuln extends CommonDBTM {
         //Request information on the obtained CVE records 
         $res = self::requestVulnerabilities(array_keys($vulnerabilities));
 
-        //Display list of vulnerabilities associated with given device
-        self::displayVulnerabilityList($res, $vulnerabilities, __('Programs'));
+        //Display list of software vulnerabilities associated with given device
+        $softwareList = self::displayVulnerabilityList($res, $vulnerabilities, __('Programs'));
+
+        // Display list of OS vulnerabilities associated with given device
+        $systemList = '';
+
+        // Display both software and system vulnerabilities organized with nav tabs
+        self::displayNavTabs($softwareList, $NsoftwareVulns, $systemList, $NsystemVulns);
     }
 
     /**
      * Display tab content on central dashboard
      *
      * @since 1.0.0
+     * 
+     * @param int $NsoftwareVulns   Number of software vulnerabilities
+     * @param int $NsystemVulns     Number of operating system vulnerabilities
      *
      * @return void
      */
-    private static function displayForDashboard(){
+    private static function displayForDashboard($NsoftwareVulns, $NsystemVulns){
 
         global $DB, $CFG_GLPI;
 
@@ -388,8 +460,14 @@ class PluginNvdVuln extends CommonDBTM {
         //Request information on the obtained CVE records 
         $res = self::requestVulnerabilities(array_keys($vulnerabilities));
 
-        //Display list of vulnerabilities associated with given device
-        self::displayVulnerabilityList($res, $vulnerabilities, __('Devices'));
+        //Display list of software vulnerabilities
+        $softwareList = self::displayVulnerabilityList($res, $vulnerabilities, __('Devices'));
+
+        // Display list of OS vulnerabilities
+        $systemList = '';
+
+        // Display both software and system vulnerabilities organized with nav tabs
+        self::displayNavTabs($softwareList, $NsoftwareVulns, $systemList, $NsystemVulns);
     }
 
     /**
@@ -490,7 +568,7 @@ class PluginNvdVuln extends CommonDBTM {
      * @param array             $vulnerableInstances    Array of vulnerability IDs and their instances
      * @param bool              $is_software            Whether or not to treat the instances as software versions or programs 
      *
-     * @return void
+     * @return string           
      */
     private static function displayVulnerabilityList($DBQueryResult, $vulnerableInstances, $instance_name, $filters=NULL) {
 
@@ -530,7 +608,34 @@ class PluginNvdVuln extends CommonDBTM {
 
         $table .= '</table>';
 
-        echo $table;
+        return $table;
+    }
+
+    /**
+     * Display navigational tabs for software and operating system related vulnerabilities
+     *
+     * @since 1.0.0
+     *
+     * @return void
+     */
+    private static function displayNavTabs($softwareContent, $NsoftwareVulns, $systemContent, $NsystemVulns) {
+
+        $out  = '<nav>';
+        $out .= '<div class="nav nav-tabs" id="nav-tab" role="tablist">';
+        $out .= '<button class="nav-link active" id="nav-software_vuln-tab" data-bs-toggle="tab" data-bs-target="#nav-software_vuln" type="button" role="tab" aria-controls="nav-software_vuln" aria-selected="true">';
+        $out .= __('Software Vulnerabilities') . '<div style="text-indent:2em"><span class="badge" style="text-indent:0em">' . "$NsoftwareVulns" . '</span></div></button>';
+        $out .= '<button class="nav-link" id="nav-system_vuln-tab" data-bs-toggle="tab" data-bs-target="#nav-system_vuln" type="button" role="tab" aria-controls="nav-system_vuln" aria-selected="false">';
+        $out .= __('OS Vulnerabilities') . '<div style="text-indent:2em"><span class="badge" style="text-indent:0em">' . "$NsystemVulns" . '</span></div></button>';
+        $out .= '</div>';
+        $out .= '</nav>';
+        $out .= '<div class="tab-content" id="nav-tabContent">';
+        $out .= '<div class="tab-pane fade show active" id="nav-software_vuln" role="tabpanel" aria-labelledby="nav-software_vuln-tab">';
+        $out .= "$softwareContent</div>";
+        $out .= '<div class="tab-pane fade" id="nav-system_vuln" role="tabpanel" aria-labelledby="nav-system_vuln-tab">';
+        $out .= "$systemContent</div>";
+        $out .= '</div>';
+
+        echo $out;
     }
 }
 
