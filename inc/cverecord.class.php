@@ -99,7 +99,7 @@ class PluginNvdCverecord {
                 $target_sw  = $row['target_sw'];
                 $target_hw  = $row['target_hw'];
 
-                $warning .= __('Some of the CPE configurations for this software that are associated with this vulnerability may contain some constrains on the following CPE attributes:');
+                $warning .= __('Some of the CPE configurations for this software that are associated with this vulnerability may contain some constraints on the following CPE attributes:');
                             
                 if (!is_null($update)) { $warning .= '\n - update: ' . str_replace(" ", ", ", $update); }
                 if (!is_null($edition)) { $warning .= '\n - sw_edition: ' . str_replace(" ", ", ", $edition); }
@@ -108,7 +108,7 @@ class PluginNvdCverecord {
 
             } else {
 
-                $warning .= __('Some of the CPE configurations that are associated with this vulnerability may contain some constrains on their CPE attributes.');
+                $warning .= __('Some of the CPE configurations that are associated with this vulnerability may contain some constraints on their CPE attributes.');
             }
 
             $warning .= '\')">' . $warning_char;
