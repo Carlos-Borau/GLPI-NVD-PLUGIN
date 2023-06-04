@@ -39,7 +39,8 @@ function pluginNvdDropTables(){
         'vulnerabilities',
         'vulnerability_descriptions',
         'vulnerability_configurations',
-        'vulnerable_versions',
+        'vulnerable_software_versions',
+        'vulnerable_system_versions',
         'cpe_software_associations',
         'config'
     ];

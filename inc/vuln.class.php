@@ -63,15 +63,15 @@ class PluginNvdVuln extends CommonDBTM {
          * Request vulnerabilities to which the given software's different versions are vulnerable
          * 
          *  SELECT vuln_id
-         *  FROM glpi_plugin_nvd_vulnerable_versions 
+         *  FROM glpi_plugin_nvd_vulnerable_software_versions 
          *  INNER JOIN glpi_softwareversions 
-         *  ON glpi_plugin_nvd_vulnerable_versions.softwareversions_id = glpi_softwareversions.id
+         *  ON glpi_plugin_nvd_vulnerable_software_versions.softwareversions_id = glpi_softwareversions.id
          *  WHERE softwares_id = $item->getID()
          *  GROUP BY vuln_id
          **********************************************************************************************/
         $res = $DB->request(['SELECT' => 'vuln_id',
-                             'FROM' => 'glpi_plugin_nvd_vulnerable_versions',
-                             'INNER JOIN' => ['glpi_softwareversions' => ['FKEY' => ['glpi_plugin_nvd_vulnerable_versions' => 'softwareversions_id',
+                             'FROM' => 'glpi_plugin_nvd_vulnerable_software_versions',
+                             'INNER JOIN' => ['glpi_softwareversions' => ['FKEY' => ['glpi_plugin_nvd_vulnerable_software_versions' => 'softwareversions_id',
                                                                                      'glpi_softwareversions' => 'id']]] ,
                              'WHERE' => ['softwares_id' => $item->getID()],
                              'GROUPBY' => 'vuln_id']);
@@ -96,16 +96,16 @@ class PluginNvdVuln extends CommonDBTM {
          * Request vulnerabilities to which the given device's different programs are vulnerable
          * 
          *  SELECT vuln_id
-         *  FROM glpi_plugin_nvd_vulnerable_versions 
+         *  FROM glpi_plugin_nvd_vulnerable_software_versions 
          *  INNER JOIN glpi_items_softwareversions 
-         *  ON glpi_plugin_nvd_vulnerable_versions.softwareversions_id = 
+         *  ON glpi_plugin_nvd_vulnerable_software_versions.softwareversions_id = 
          *     glpi_items_softwareversions.softwareversions_id
          *  WHERE items_id' = $item->getID() AND 'itemtype' = $item->getType()
          *  GROUP BY vuln_id
          **********************************************************************************************/
         $res = $DB->request(['SELECT' => 'vuln_id',
-                                         'FROM' => 'glpi_plugin_nvd_vulnerable_versions',
-                                         'INNER JOIN' => ['glpi_items_softwareversions' => ['FKEY' => ['glpi_plugin_nvd_vulnerable_versions' => 'softwareversions_id',
+                                         'FROM' => 'glpi_plugin_nvd_vulnerable_software_versions',
+                                         'INNER JOIN' => ['glpi_items_softwareversions' => ['FKEY' => ['glpi_plugin_nvd_vulnerable_software_versions' => 'softwareversions_id',
                                                                                                      'glpi_items_softwareversions' => 'softwareversions_id']]],
                                          'WHERE' => ['items_id' => $item->getID(), 'itemtype' => $item->getType()],
                                          'GROUPBY' => 'vuln_id']);
@@ -128,14 +128,14 @@ class PluginNvdVuln extends CommonDBTM {
          * Request every vulnerability registered
          * 
          *  SELECT vuln_id 
-         *  FROM glpi_plugin_nvd_vulnerable_versions, glpi_items_softwareversions
-         *  WHERE glpi_plugin_nvd_vulnerable_versions.softwareversions_id = 
+         *  FROM glpi_plugin_nvd_vulnerable_software_versions, glpi_items_softwareversions
+         *  WHERE glpi_plugin_nvd_vulnerable_software_versions.softwareversions_id = 
          *        glpi_items_softwareversions.softwareversions_id
          *  GROUP BY vuln_id
          **********************************************************************************************/
         $res = $DB->request(['SELECT' => 'vuln_id',
-                                         'FROM' => ['glpi_plugin_nvd_vulnerable_versions', 'glpi_items_softwareversions'],
-                                         'FKEY' => ['glpi_plugin_nvd_vulnerable_versions' => 'softwareversions_id',
+                                         'FROM' => ['glpi_plugin_nvd_vulnerable_software_versions', 'glpi_items_softwareversions'],
+                                         'FKEY' => ['glpi_plugin_nvd_vulnerable_software_versions' => 'softwareversions_id',
                                                     'glpi_items_softwareversions' => 'softwareversions_id'],
                                          'GROUPBY' => 'vuln_id']);
 
@@ -193,9 +193,9 @@ class PluginNvdVuln extends CommonDBTM {
          * Request vulnerabilities to which the given software's different versions are vulnerable
          * 
          *  SELECT vuln_id AS VULN_ID, GROUP_CONCAT(name) AS version
-         *  FROM glpi_plugin_nvd_vulnerable_versions 
+         *  FROM glpi_plugin_nvd_vulnerable_software_versions 
          *  INNER JOIN glpi_softwareversions 
-         *  ON glpi_plugin_nvd_vulnerable_versions.softwareversions_id = glpi_softwareversions.id
+         *  ON glpi_plugin_nvd_vulnerable_software_versions.softwareversions_id = glpi_softwareversions.id
          *  WHERE softwares_id = $item->getID()
          *  GROUP BY vuln_id
          **********************************************************************************************/
@@ -203,8 +203,8 @@ class PluginNvdVuln extends CommonDBTM {
                                 'vuln_id AS VULN_ID',
                                 new QueryExpression("GROUP_CONCAT(`name`) AS `version`")
                              ],
-                             'FROM' => 'glpi_plugin_nvd_vulnerable_versions',
-                             'INNER JOIN' => ['glpi_softwareversions' => ['FKEY' => ['glpi_plugin_nvd_vulnerable_versions' => 'softwareversions_id',
+                             'FROM' => 'glpi_plugin_nvd_vulnerable_software_versions',
+                             'INNER JOIN' => ['glpi_softwareversions' => ['FKEY' => ['glpi_plugin_nvd_vulnerable_software_versions' => 'softwareversions_id',
                                                                                      'glpi_softwareversions' => 'id']]] ,
                              'WHERE' => ['softwares_id' => $item->getID()],
                              'GROUPBY' => 'vuln_id']);
@@ -254,20 +254,20 @@ class PluginNvdVuln extends CommonDBTM {
          * Request vulnerabilities to which the given device's different programs are vulnerable
          * 
          *  SELECT vuln_id AS VULN_ID, 
-         *         GROUP_CONCAT(glpi_plugin_nvd_vulnerable_versions.softwareversions_id) AS version
-         *  FROM glpi_plugin_nvd_vulnerable_versions 
+         *         GROUP_CONCAT(glpi_plugin_nvd_vulnerable_software_versions.softwareversions_id) AS version
+         *  FROM glpi_plugin_nvd_vulnerable_software_versions 
          *  INNER JOIN glpi_items_softwareversions 
-         *  ON glpi_plugin_nvd_vulnerable_versions.softwareversions_id = 
+         *  ON glpi_plugin_nvd_vulnerable_software_versions.softwareversions_id = 
          *     glpi_items_softwareversions.softwareversions_id
          *  WHERE items_id' = $item->getID() AND 'itemtype' = $item->getType()
          *  GROUP BY vuln_id
          **********************************************************************************************/
         $res = $DB->request(['SELECT' => [
                     'vuln_id AS VULN_ID',
-                    new QueryExpression("GROUP_CONCAT(`glpi_plugin_nvd_vulnerable_versions`.`softwareversions_id`) AS `version`")
+                    new QueryExpression("GROUP_CONCAT(`glpi_plugin_nvd_vulnerable_software_versions`.`softwareversions_id`) AS `version`")
                 ],
-                'FROM' => 'glpi_plugin_nvd_vulnerable_versions',
-                'INNER JOIN' => ['glpi_items_softwareversions' => ['FKEY' => ['glpi_plugin_nvd_vulnerable_versions' => 'softwareversions_id',
+                'FROM' => 'glpi_plugin_nvd_vulnerable_software_versions',
+                'INNER JOIN' => ['glpi_items_softwareversions' => ['FKEY' => ['glpi_plugin_nvd_vulnerable_software_versions' => 'softwareversions_id',
                                                                               'glpi_items_softwareversions' => 'softwareversions_id']]],
                 'WHERE' => ['items_id' => $item->getID(), 'itemtype' => $item->getType()],
                 'GROUPBY' => 'vuln_id']);
@@ -325,8 +325,8 @@ class PluginNvdVuln extends CommonDBTM {
          * 
          *  SELECT vuln_id AS VULN_ID, 
          *       GROUP_CONCAT(DISTINCT itemtype, ':', items_id ORDER BY itemtype, items_id) AS instances
-         *  FROM glpi_plugin_nvd_vulnerable_versions, glpi_items_softwareversions
-         *  WHERE glpi_plugin_nvd_vulnerable_versions.softwareversions_id = 
+         *  FROM glpi_plugin_nvd_vulnerable_software_versions, glpi_items_softwareversions
+         *  WHERE glpi_plugin_nvd_vulnerable_software_versions.softwareversions_id = 
          *        glpi_items_softwareversions.softwareversions_id
          *  GROUP BY vuln_id
          **********************************************************************************************/
@@ -334,8 +334,8 @@ class PluginNvdVuln extends CommonDBTM {
                     'vuln_id AS VULN_ID',
                     new QueryExpression("GROUP_CONCAT(DISTINCT `itemtype`, ':', `items_id` ORDER BY `itemtype`, `items_id`) AS instances")
                 ],
-                'FROM' => ['glpi_plugin_nvd_vulnerable_versions', 'glpi_items_softwareversions'],
-                'FKEY' => ['glpi_plugin_nvd_vulnerable_versions' => 'softwareversions_id',
+                'FROM' => ['glpi_plugin_nvd_vulnerable_software_versions', 'glpi_items_softwareversions'],
+                'FKEY' => ['glpi_plugin_nvd_vulnerable_software_versions' => 'softwareversions_id',
                            'glpi_items_softwareversions' => 'softwareversions_id'],
                 'GROUPBY' => 'vuln_id']);
 

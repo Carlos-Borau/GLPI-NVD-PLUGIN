@@ -23,7 +23,10 @@ function pluginNvdInstall(){
  *
  * Created tables are:
  * - glpi_plugin_nvd_vulnerabilities
- * - glpi_plugin_nvd_vulnerable_versions
+ * - glpi_plugin_nvd_vulnerability_descriptions
+ * - glpi_plugin_nvd_vulnerability_configurations
+ * - glpi_plugin_nvd_vulnerable_software_versions
+ * - glpi_plugin_nvd_vulnerable_system_versions
  * - glpi_plugin_nvd_cpe_software_associations
  * - glpi_plugin_nvd_config
  *
@@ -114,20 +117,42 @@ function pluginNvdCreateTables(){
     }
 
     /***********************************************************************************************
-     * Table:   glpi_plugin_nvd_vulnerable_versions
+     * Table:   glpi_plugin_nvd_vulnerable_software_versions
      * Stores:  Relations between software versions and known vulnerabilities
      * Fields:
      *      -id = Numerical autoincrement ID
      *      -vuln_id = ID of the vulnerability in the glpi_plugin_nvd_vulnerabilities table
      *      -softwareversions_id = ID of the software version in the glpi_softwareversions table
      **********************************************************************************************/ 
-    if(!$DB->tableExists('glpi_plugin_nvd_vulnerable_versions')){
+    if(!$DB->tableExists('glpi_plugin_nvd_vulnerable_software_versions')){
 
-        $query = "CREATE TABLE `glpi_plugin_nvd_vulnerable_versions` (
+        $query = "CREATE TABLE `glpi_plugin_nvd_vulnerable_software_versions` (
                     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
                     `vuln_id` INT UNSIGNED NOT NULL,
                     `softwareversions_id` INT UNSIGNED NOT NULL,
                     CONSTRAINT `VULN_VERSION` UNIQUE (`vuln_id`, `softwareversions_id`),
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+        $DB->queryOrDie($query, $DB->error());
+    }
+
+    /***********************************************************************************************
+     * Table:   glpi_plugin_nvd_vulnerable_system_versions
+     * Stores:  Relations between operating system versions and known vulnerabilities
+     * Fields:
+     *      -id = Numerical autoincrement ID
+     *      -vuln_id = ID of the vulnerability in the glpi_plugin_nvd_vulnerabilities table
+     *      -system_configuration = Configuration of the vulnerable system containing CPE vendor and
+     *          product names as well as its version
+     **********************************************************************************************/ 
+    if(!$DB->tableExists('glpi_plugin_nvd_vulnerable_system_versions')){
+
+        $query = "CREATE TABLE `glpi_plugin_nvd_vulnerable_system_versions` (
+                    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `vuln_id` INT UNSIGNED NOT NULL,
+                    `system_configuration` VARCHAR(2047) NOT NULL,
+                    CONSTRAINT `VULN_SYSTEM_VERSION` UNIQUE (`vuln_id`, `system_configuration`),
                     PRIMARY KEY (`id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
