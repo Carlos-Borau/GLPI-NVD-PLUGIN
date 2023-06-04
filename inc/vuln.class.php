@@ -313,6 +313,10 @@ class PluginNvdVuln extends CommonDBTM {
 
         global $DB, $CFG_GLPI;
 
+        /***************************\
+        |* Software Vulnerabilities |
+        \***************************/
+
         /***********************************************************************************************
          * Request vulnerabilities to which the given device's different programs are vulnerable
          * 
@@ -371,8 +375,65 @@ class PluginNvdVuln extends CommonDBTM {
         //Display list of software vulnerabilities associated with given device
         $softwareList = self::displayVulnerabilityList($res, $vulnerabilities, __('Programs'));
 
-        // Display list of OS vulnerabilities associated with given device
-        $systemList = '';
+        /**********************************\
+        |* Operating Sytem Vulnerabilities |
+        \**********************************/
+
+        $vulnerabilities = [];
+        $filters = [];
+
+        /**
+         * @todo get device os configuration
+         * @todo create filters based on configuration
+         * @todo request os vulnerabilities related to device
+         */
+
+         /***********************************************************************************************
+         * Request operating system version for the given device
+         * 
+         *  SELECT operatingsystems_id, operatingsystemversions_id, operatingsystemkernelversions_id
+         *  FROM glpi_items_operatingsystems
+         *  WHERE items_id' = $item->getID() AND 'itemtype' = $item->getType()
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => ['operatingsystems_id', 'operatingsystemversions_id', 'operatingsystemkernelversions_id'],
+                                          'FROM' => 'glpi_items_operatingsystems',
+                                          'WHERE' => ['items_id' => $item->getID(), 'itemtype' => $item->getType()]]);
+
+        if ($res->numrows() == 1) { 
+
+            [$name, $version, $kernel, $kernelVersion] = PluginNvdDatabaseutils::requestOSdata($res->current());
+
+            $installationData = PluginNvdCpe::getOSInstallationData($name, $version, $kernel, $kernelVersion);
+
+            if (!is_null($installationData)) {
+
+                $filters = array(
+                    'vendor_name' => $installationData[CPE_VENDOR], 
+                    'product_name' => $installationData[CPE_PRODUCT]
+                );
+
+                $configuration = $installationData['configuration'];
+
+                /***********************************************************************************************
+                * Request every operating system vulnerability associated with the given device
+                * 
+                *  SELECT vuln_id 
+                *  FROM glpi_plugin_nvd_vulnerable_system_versions
+                *  WHERE system_configuration = $configuration
+                **********************************************************************************************/
+                $res = $DB->request(['SELECT' => 'vuln_id',
+                'FROM' => 'glpi_plugin_nvd_vulnerable_system_versions',
+                'WHERE' => ['system_configuration' => $configuration]]);
+
+                $vulnerabilities = PluginNvdDatabaseutils::pushResToArray($res, 'vuln_id');
+            }
+        }
+
+        //Request information on the obtained CVE records 
+        $res = self::requestVulnerabilities($vulnerabilities);
+
+        // Display list of OS vulnerabilities
+        $systemList = self::displayVulnerabilityList($res, $vulnerabilities, NULL, $filters);;
 
         // Display both software and system vulnerabilities organized with nav tabs
         self::displayNavTabs($softwareList, $NsoftwareVulns, $systemList, $NsystemVulns);
@@ -391,6 +452,10 @@ class PluginNvdVuln extends CommonDBTM {
     private static function displayForDashboard($NsoftwareVulns, $NsystemVulns){
 
         global $DB, $CFG_GLPI;
+
+        /***************************\
+        |* Software Vulnerabilities |
+        \***************************/
 
         /***********************************************************************************************
          * Request every vulnerability registered and the devices associated with it
@@ -463,8 +528,23 @@ class PluginNvdVuln extends CommonDBTM {
         //Display list of software vulnerabilities
         $softwareList = self::displayVulnerabilityList($res, $vulnerabilities, __('Devices'));
 
+        /**********************************\
+        |* Operating Sytem Vulnerabilities |
+        \**********************************/
+
+        /**
+         * @todo request every os vulnerability and the configurations associated with it
+         * @todo get every device os configuration
+         * @todo create associations
+         */
+
+        $vulnerabilities = [];
+
+        //Request information on the obtained CVE records 
+        $res = self::requestVulnerabilities(array_keys($vulnerabilities));
+
         // Display list of OS vulnerabilities
-        $systemList = '';
+        $systemList = self::displayVulnerabilityList($res, $vulnerabilities, __('Devices'));;
 
         // Display both software and system vulnerabilities organized with nav tabs
         self::displayNavTabs($softwareList, $NsoftwareVulns, $systemList, $NsystemVulns);
@@ -573,17 +653,26 @@ class PluginNvdVuln extends CommonDBTM {
     private static function displayVulnerabilityList($DBQueryResult, $vulnerableInstances, $instance_name, $filters=NULL) {
 
         // If no vulnerabilities are found do not display anything
-        if (!$vulnerableInstances) { return; }
+        if (!$vulnerableInstances) { return ''; }
 
-        $table =    '<table class="center vuln-table">';
-        $table .=   '<colgroup><col width="10%"/><col width="5%"/><col width="15%"/><col width="5%"/><col width="55%"/><col width="10%"/></colgroup>';
+        $table = '<table class="center vuln-table">';
+
+        if (!is_null($instance_name)) {
+
+            $table .= '<colgroup><col width="10%"/><col width="5%"/><col width="15%"/><col width="5%"/><col width="55%"/><col width="10%"/></colgroup>';
+        
+        } else {
+
+            $table .= '<colgroup><col width="15%"/><col width="10%"/><col width="15%"/><col width="5%"/><col width="55%"/></colgroup>';
+        }
+        
         $table .=   '<tr>';
         $table .=   '<th class="centered">' . __('Severity') . '</th>';
         $table .=   '<th class="centered">' . __('Score') . '</th>';
         $table .=   '<th class="centered">CVE-ID</th>';
         $table .=   '<th class="centered">' . mb_chr(0x2755, 'UTF-8') . '</th>';
         $table .=   '<th class="centered">' . __('Description') . '</th>';
-        $table .=   '<th class="centered">' . $instance_name . '</th>';
+        $table .=   !is_null($instance_name) ? '<th class="centered">' . $instance_name . '</th>' : '';
         $table .=   '</tr>';
 
         foreach ($DBQueryResult as $id => $row) {
@@ -600,9 +689,7 @@ class PluginNvdVuln extends CommonDBTM {
             $table .= '<td class="centered"> <a href="' . PluginNvdCverecord::getCveNvdUrl($row['cve_id']) . '">' . $row['cve_id'] . '</a></td>';
             $table .= '<td class="centered" ' . $configuration_warning . '</td>';
             $table .= '<td class="justified">' . $description . '</td>';
-            $table .= '<td class="centered">';
-            $table .= $vulnerableInstances[$id];
-            $table .= '</td>';
+            $table .= !is_null($instance_name) ? '<td class="centered">' . $vulnerableInstances[$id] . '</td>' : '';
             $table .= '</tr>';
         }
 
