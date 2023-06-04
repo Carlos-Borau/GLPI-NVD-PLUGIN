@@ -70,7 +70,7 @@ class PluginNvdCpe {
 
         foreach ($attributes as $attribute => $value) {
             if (array_key_exists($attribute, $this->attributes) and gettype($value) == "string") {
-                $this->attributes[$attribute] = $value;
+                $this->attributes[$attribute] = strtolower($value);
             }
         }
     }
@@ -222,6 +222,163 @@ class PluginNvdCpe {
         $name = str_replace(' ', ',', $name);
 
         return $name;
+    }
+
+
+    /**
+     * Transforms OS data into CPE standard names
+     * 
+     * @since 1.0.0
+     * 
+     * @param string    $name           Operating system name
+     * @param string    $version        Operating system  
+     * @param string    $kernel         Operating system kernel name 
+     * @param string    $kernelVersion  Operating system kernel version
+     * 
+     * @return array    Array containing OS CPE vendor, product and version and configuration  
+     */
+    public static function getOSInstallationData($name, $version, $kernel, $kernelVersion) {
+
+        switch ($kernel) {
+
+            case 'MSWin32':
+
+                return self::classifyWindowsInstallation($name, $version, $kernelVersion);
+
+            case 'darwin':
+
+                return self::classifyMacOSInstallation($name, $version);
+
+            case 'linux':
+
+                return self::classifyLinuxInstallation($name, $version);
+
+            default:
+
+                return null;
+        }
+    } 
+
+    /**
+     * Classify Windows type operating system
+     * 
+     * @since 1.0.0
+     * 
+     * @param string    $version        Operating system  
+     * @param string    $kernel         Operating system kernel name 
+     * @param string    $kernelVersion  Operating system kernel version
+     * 
+     * @return array    Array containing OS CPE vendor, product and version and configuration  
+     */
+    private static function classifyWindowsInstallation($name, $version, $kernelVersion) {
+
+        $vendor  = 'microsoft';
+        $product = null;
+        $matches = [];
+
+        if (preg_match('/Microsoft Windows Server ([^ ]+)/', $name, $matches)) { //Windows server type installation
+
+            $edition = $matches[1];
+            $product = "windows_server_$edition";
+
+        } elseif (preg_match('/Microsoft Windows ([^ ]+)/', $name, $matches)) { // Regular Windows installation
+
+            $edition = $matches[1];
+            $product = "windows_$edition";
+
+            if ($edition == '10' or $edition == '11') {
+                $product .= "_$version";
+            } 
+
+        } else { // Unrecognized Windows installation
+
+            return null;
+        }
+
+        return array(
+            CPE_VENDOR => $vendor,
+            CPE_PRODUCT => $product,
+            CPE_VERSION => $kernelVersion,
+            'configuration' => "$vendor:$product:$kernelVersion"
+        );
+    }
+
+    /**
+     * Classify MacOS type operating system
+     * 
+     * @since 1.0.0
+     * 
+     * @param string    $version        Operating system  
+     * @param string    $kernel         Operating system kernel name 
+     * 
+     * @return array    Array containing OS CPE vendor, product and version and configuration  
+     */
+    private static function classifyMacOSInstallation($name, $version) {
+
+        $vendor = 'apple';
+        $matches = [];
+
+        if ($name == 'macOS' and preg_match('/((\d+\.)+\d+)/', $version, $matches)) {
+
+            $product = 'macos';
+            $version = $matches[1];
+
+            return array(
+                CPE_VENDOR => $vendor,
+                CPE_PRODUCT => $product,
+                CPE_VERSION => $version,
+                'configuration' => "$vendor:$product:$version"
+            );
+        } 
+        
+        // Unrecognized MacOS installation
+        return null;
+    }
+
+    /**
+     * Classify Linux type operating system
+     * 
+     * @since 1.0.0
+     * 
+     * @param string    $version        Operating system  
+     * @param string    $kernel         Operating system kernel name 
+     * 
+     * @return array    Array containing OS CPE vendor, product and version and configuration  
+     */
+    private static function classifyLinuxInstallation($name, $version) {
+
+        $vendor  = null;
+        $product = null;
+        $matches = [];
+
+        if (str_contains($name, 'Debian') and preg_match('/((\d+\.)+\d+)/', $version, $matches)) {
+
+            $vendor = 'debian';
+            $product = 'debian_linux';
+
+        } elseif (str_contains($name, 'Ubuntu') and preg_match('/((\d+\.)+\d+)/', $version, $matches)) {
+
+            $vendor = 'ubuntu';
+            $product = 'ubuntu_linux';
+
+        } elseif (str_contains($name, 'Redhat') and preg_match('/((\d+\.)+\d+)/', $version, $matches)) {
+
+            $vendor = 'redhat';
+            $product = 'enterprise_linux';
+        
+        } else { // Unrecognized Linux installation
+
+            return null;
+        }
+
+        $version = $matches[1];
+
+        return array(
+            CPE_VENDOR => $vendor,
+            CPE_PRODUCT => $product,
+            CPE_VERSION => $version,
+            'configuration' => "$vendor:$product:$version"
+        );
     }
 }
 
