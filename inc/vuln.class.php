@@ -364,7 +364,7 @@ class PluginNvdVuln extends CommonDBTM {
 
             //Transform names and IDs to liks to vulnerable programs in GLPI
             foreach ($res_2 as $id_2 => $row_2) {
-                array_push($programs, '<a href="' . "{$CFG_GLPI['root_doc']}/front/software.form.php?id=" . $row_2['id'] . '">' . $row_2['name'] . '</a>');
+                $programs[] = '<a href="' . "{$CFG_GLPI['root_doc']}/front/software.form.php?id=" . $row_2['id'] . '">' . $row_2['name'] . '</a>';
             }
             
             $vulnerabilities[$row['VULN_ID']] = implode(',', $programs);
@@ -511,7 +511,7 @@ class PluginNvdVuln extends CommonDBTM {
             // Transform names and IDs to liks to vulnerable devices in GLPI
             foreach ($instance_IDs as $item_type => $ID_names) {
                 foreach ($ID_names as $ID => $name) {
-                    array_push($instances, '<a href="' . "{$CFG_GLPI['root_doc']}/front/$item_type.form.php?id=" . $ID . '">' . $name . '</a>');
+                    $instances[] = '<a href="' . "{$CFG_GLPI['root_doc']}/front/$item_type.form.php?id=" . $ID . '">' . $name . '</a>';
                 }
             }
 
@@ -534,7 +534,77 @@ class PluginNvdVuln extends CommonDBTM {
          * @todo create associations
          */
 
+        /***********************************************************************************************
+         * Request every operating system version and the devices associated with it
+         * 
+         *  SELECT items_id, itemtype, operatingsystems_id, operatingsystemversions_id, 
+         *      operatingsystemkernelversions_id, operatingsystemservicepacks_id
+         *  FROM glpi_items_operatingsystems
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => ['items_id', 'itemtype', 'operatingsystems_id', 'operatingsystemversions_id',
+                                          'operatingsystemkernelversions_id', 'operatingsystemservicepacks_id'],
+                                          'FROM' => 'glpi_items_operatingsystems']);
+
+        $deviceConfigurations = [];
+
+        foreach ($res as $id => $row) {
+
+            $item_type = $row['itemtype'];
+            $ID = $row['items_id'];
+
+            [$name, $version, $kernel, $kernelVersion, $servicePack] = PluginNvdDatabaseutils::requestOSdata($row);
+
+            $installationData = PluginNvdCpe::getOSInstallationData($name, $version, $kernel, $kernelVersion, $servicePack);
+
+            if (!is_null($installationData)) {
+
+                $configuration = $installationData['configuration'];
+
+                $table = 'glpi_' . $item_type . 's';
+
+                /***********************************************************************************************
+                 * Request device names for every device
+                 * 
+                 *  SELECT name
+                 *  FROM 'glpi_' . $item_type . 's'
+                 *  WHERE id = $ID
+                 **********************************************************************************************/
+                $res_2 = $DB->request(['SELECT' => 'name',
+                                    'FROM' => $table,
+                                    'WHERE' => ['id' => $ID]]);
+
+                $deviceName = ($res_2->numrows() == 1) ? $res_2->current()['name'] : 'UNNAMED_DEVICE';
+
+                $deviceConfigurations[$configuration][] = '<a href="' . "{$CFG_GLPI['root_doc']}/front/$item_type.form.php?id=" . $ID . '">' . $deviceName . '</a>';
+            }
+        }
+
+        /***********************************************************************************************
+         * Request every vulnerability registered and the configurations associated with it
+         * 
+         *  SELECT vuln_id AS VULN_ID, GROUP_CONCAT(system_configuration) AS configurations
+         *  FROM glpi_plugin_nvd_vulnerable_system_versions
+         *  GROUP BY vuln_id
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => ['vuln_id AS VULN_ID', new QueryExpression("GROUP_CONCAT(`system_configuration`) AS configurations")],
+                             'FROM' => 'glpi_plugin_nvd_vulnerable_system_versions',
+                             'GROUPBY' => 'vuln_id']);
+
         $vulnerabilities = [];
+
+        foreach ($res as $id => $row) {
+
+            $configurations = explode(',', $row['configurations']);
+
+            $devices = [];
+
+            foreach ($configurations as $configuration) {
+                
+                $devices = array_merge($devices, $deviceConfigurations[$configuration]);
+            }
+
+            $vulnerabilities[$row['VULN_ID']] = implode(', ', $devices);
+        }
 
         //Request information on the obtained CVE records 
         $res = self::requestVulnerabilities(array_keys($vulnerabilities));
