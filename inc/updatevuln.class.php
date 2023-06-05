@@ -32,7 +32,7 @@ class PluginNvdUpdatevuln extends CommonGLPI {
     static function cronUpdateVulnTask($task=NULL) {
 
         // Get NVD API key from database
-        $apiKey = self::getNvdApiKey();
+        $apiKey = PluginNvdDatabaseutils::getNvdApiKey();
 
         // If no API Key is set the task can't proceed
         if (is_null($apiKey)) { return false; }
@@ -393,36 +393,6 @@ class PluginNvdUpdatevuln extends CommonGLPI {
                 unset($configurations[$vendor]);
             }
         }
-    }
-
-    /**
-     * Queries the GLPI database and returns the API key set for the NVD API
-     * 
-     * @since 1.0.0
-     * 
-     * @return string    NVD API key
-     */
-    private static function getNvdApiKey() {
-
-        global $DB;
-
-        /***********************************************************************************************
-         * Request api key from glpi configuration
-         * 
-         *  SELECT api_key
-         *  FROM glpi_plugin_nvd_config 
-         **********************************************************************************************/
-        $res = $DB->request(['SELECT' => 'api_key',
-                             'FROM' => 'glpi_plugin_nvd_config']);
-
-        if ($res->numrows() != 0) {
-
-            $row = $res->current();
-
-            return $row['api_key'];
-        }
-
-        return NULL;
     }
 
     /**

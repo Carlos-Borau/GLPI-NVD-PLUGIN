@@ -58,7 +58,7 @@ class PluginNvdConfig extends CommonGLPI {
      */
     private static function displayConfig() {
 
-        $currentApiKey = self::getCurrentApiKey();
+        $currentApiKey = PluginNvdDatabaseutils::getNvdApiKey();
 
         $out  = '<form action="../plugins/nvd/front/config.form.php" method="POST">';
         $out .= Html::hidden('_glpi_csrf_token', array('value' => Session::getNewCSRFToken()));
@@ -80,29 +80,6 @@ class PluginNvdConfig extends CommonGLPI {
         $out .= '</form>';
 
         echo $out;
-    }
-
-    /**
-     * Queries the database and retrieves the NVD API key from the configutarion if existing
-     *
-     * @since 1.0.0
-     *
-     * @return string Current NVD API key
-     */
-    private static function getCurrentApiKey() {
-
-        global $DB;
-
-        $res = $DB->request(['SELECT' => 'api_key',
-                             'FROM' => 'glpi_plugin_nvd_config']);
-
-        if ($res->numrows() != 0) {
-            $row = $res->current();
-
-            return $row['api_key'];
-        }
-
-        return NULL;
     }
 }
 
