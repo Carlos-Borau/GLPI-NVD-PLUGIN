@@ -3,51 +3,6 @@
 class PluginNvdUpdatevuln extends CommonGLPI {
 
     /**
-     * Check if can view item
-     *
-     * @since 1.0.0
-     *
-     * @return boolean
-     */
-    static function canView() {
-        
-        return Config::canView();
-    }
-
-    /**
-     * Get tab name for displayed item
-     *
-     * @since 1.0.0
-     *
-     * @return boolean
-     */
-    function getTabNameForItem(CommonGLPI $item, $withtemplate=0) {
-
-        return self::createTabEntry(__('Update Vuln'));
-    }
-
-    /**
-     * Display tab content for given Software
-     *
-     * @since 1.0.0
-     *
-     * @param CommonGLPI $item       Software for which to display the CPE association
-     * @param int $tabnum
-     * @param int $withtemplate
-     *
-     * @return boolean
-     */
-    static function displayTabContentForItem(CommonGLPI $item, $tabnum=1, $withtemplate=0) {
-
-        if ($item::getType() === Central::getType()) {
-            
-            self::cronUpdateVulnTask();
-        }
-        
-        return true;
-    }
-
-    /**
      * Give cron information on the specified task
      * 
      * @since 1.0.0
@@ -912,11 +867,35 @@ class PluginNvdUpdatevuln extends CommonGLPI {
              * Remove all vulnerable versions no longer installed on any device
              * 
              *  DELETE FROM glpi_plugin_nvd_vulnerabilities
-             *  WHERE id IN $vulnerabilitiesToRemove
+             *  WHERE id IN $oldVulnerabilities
              **********************************************************************************************/
             $DB->delete(
                 'glpi_plugin_nvd_vulnerabilities', [
                     'id' => $oldVulnerabilities
+                ]
+            );
+
+            /***********************************************************************************************
+             * Remove all descriptions for the removed vulnerabilities
+             * 
+             *  DELETE FROM glpi_plugin_nvd_vulnerability_descriptions
+             *  WHERE vuln_id IN $oldVulnerabilities
+             **********************************************************************************************/
+            $DB->delete(
+                'glpi_plugin_nvd_vulnerability_descriptions', [
+                    'vuln_id' => $oldVulnerabilities
+                ]
+            );
+
+            /***********************************************************************************************
+             * Remove all configurations for the removed vulnerabilities
+             * 
+             *  DELETE FROM glpi_plugin_nvd_vulnerability_configurations
+             *  WHERE vuln_id IN $oldVulnerabilities
+             **********************************************************************************************/
+            $DB->delete(
+                'glpi_plugin_nvd_vulnerability_configurations', [
+                    'vuln_id' => $oldVulnerabilities
                 ]
             );
         }

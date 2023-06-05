@@ -18,6 +18,9 @@ class PluginNvdVuln extends CommonDBTM {
      * Get tab name for displayed item
      *
      * @since 1.0.0
+     * 
+     * @param CommonGLPI $item
+     * @param int        $withtemplate
      *
      * @return boolean
      */
@@ -304,7 +307,7 @@ class PluginNvdVuln extends CommonDBTM {
      *
      * @since 1.0.0
      *
-     * @param CommonGLPI $item       Device item for which to display vulnerabilities
+     * @param CommonGLPI $item      Device item for which to display vulnerabilities
      * @param int $NsoftwareVulns   Number of software vulnerabilities
      * @param int $NsystemVulns     Number of operating system vulnerabilities
      *
@@ -527,12 +530,6 @@ class PluginNvdVuln extends CommonDBTM {
         /**********************************\
         |* Operating Sytem Vulnerabilities |
         \**********************************/
-
-        /**
-         * @todo request every os vulnerability and the configurations associated with it
-         * @todo get every device os configuration
-         * @todo create associations
-         */
 
         /***********************************************************************************************
          * Request every operating system version and the devices associated with it

@@ -2,6 +2,8 @@
 
 /**
  * Install hook
+ * 
+ * @since 1.0.0
  *
  * @return boolean
  */
@@ -16,6 +18,8 @@ function plugin_nvd_install() {
 
 /**
  * Uninstall hook
+ * 
+ * @since 1.0.0
  *
  * @return boolean
  */

@@ -18,6 +18,9 @@ class PluginNvdConfig extends CommonGLPI {
      * Get tab name for displayed item
      *
      * @since 1.0.0
+     * 
+     * @param CommonGLPI $item
+     * @param int        $withtemplate
      *
      * @return boolean
      */

@@ -39,7 +39,9 @@ class PluginNvdDatabaseutils {
      * 
      * @since 1.0.0
      * 
-     * @param 
+     * @param DBmysqlIterator   $res        Array containing database queried rows
+     * @param string            $value      Value to append to array of results
+     * @param string            $key        Optional key for which to append the value
      * 
      * @return array    Array values
      */

@@ -11,6 +11,8 @@ class PluginNvdConnection {
      * 
      * @since 1.0.0
      * 
+     * @param string $baseRequestUrl    Base URL to construct the requests
+     * 
      * @return void 
      */
     public function __construct($baseRequestUrl) {

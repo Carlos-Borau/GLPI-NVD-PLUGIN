@@ -89,6 +89,17 @@ function insertSoftwareCPENames($softwares_id, $vendor, $product) {
     );
 }
 
+/**
+ * Update CPE vendor and product names association for given software
+ *
+ * @since 1.0.0
+ *
+ * @param int       $softwares_id       ID of the software for which to update the association
+ * @param string    $vendor             CPE vendor name for the given software
+ * @param string    $product            CPE product name for the given software
+ *
+ * @return void
+ */
 function updateSoftwareCPENames($softwares_id, $vendor, $product) {
 
     global $DB;
