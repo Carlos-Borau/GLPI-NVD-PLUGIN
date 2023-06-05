@@ -237,13 +237,13 @@ class PluginNvdCpe {
      * 
      * @return array    Array containing OS CPE vendor, product and version and configuration  
      */
-    public static function getOSInstallationData($name, $version, $kernel, $kernelVersion) {
+    public static function getOSInstallationData($name, $version, $kernel, $kernelVersion, $servicePack) {
 
         switch ($kernel) {
 
             case 'MSWin32':
 
-                return self::classifyWindowsInstallation($name, $version, $kernelVersion);
+                return self::classifyWindowsInstallation($name, $version, $kernelVersion, $servicePack);
 
             case 'darwin':
 
@@ -270,11 +270,17 @@ class PluginNvdCpe {
      * 
      * @return array    Array containing OS CPE vendor, product and version and configuration  
      */
-    private static function classifyWindowsInstallation($name, $version, $kernelVersion) {
+    private static function classifyWindowsInstallation($name, $version, $kernelVersion, $servicePack) {
 
         $vendor  = 'microsoft';
         $product = null;
         $matches = [];
+
+        foreach (func_get_args() as $arg) {
+
+            // If any of the arguments is null the installation cannot be recognized
+            if (is_null($arg)){ return null; }
+        }
 
         if (preg_match('/Microsoft Windows Server ([^ ]+)/', $name, $matches)) { //Windows server type installation
 
@@ -295,12 +301,24 @@ class PluginNvdCpe {
             return null;
         }
 
-        return array(
-            CPE_VENDOR => $vendor,
-            CPE_PRODUCT => $product,
-            CPE_VERSION => $kernelVersion,
-            'configuration' => "$vendor:$product:$kernelVersion"
-        );
+        $buildNums      = explode('.', $servicePack);
+        $buildVersion   = explode('.', $kernelVersion);
+        $buildMajor     = end($buildVersion);
+
+        if (count($buildNums) == 2 and $buildNums[0] == $buildMajor) {
+
+            $buildMinor = $buildNums[1];
+
+            return array(
+                CPE_VENDOR => $vendor,
+                CPE_PRODUCT => $product,
+                CPE_VERSION => "$kernelVersion.$buildMinor",
+                'configuration' => "$vendor:$product:$kernelVersion.$buildMinor"
+            );
+        }
+
+        // Unrecognized installation version
+        return null;
     }
 
     /**
@@ -317,6 +335,12 @@ class PluginNvdCpe {
 
         $vendor = 'apple';
         $matches = [];
+
+        foreach (func_get_args() as $arg) {
+
+            // If any of the arguments is null the installation cannot be recognized
+            if (is_null($arg)){ return null; }
+        }
 
         if ($name == 'macOS' and preg_match('/((\d+\.)+\d+)/', $version, $matches)) {
 
@@ -350,6 +374,12 @@ class PluginNvdCpe {
         $vendor  = null;
         $product = null;
         $matches = [];
+
+        foreach (func_get_args() as $arg) {
+
+            // If any of the arguments is null the installation cannot be recognized
+            if (is_null($arg)){ return null; }
+        }
 
         if (str_contains($name, 'Debian') and preg_match('/((\d+\.)+\d+)/', $version, $matches)) {
 

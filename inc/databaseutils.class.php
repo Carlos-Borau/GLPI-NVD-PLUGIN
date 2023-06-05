@@ -114,6 +114,7 @@ class PluginNvdDatabaseutils {
         $OS_ID                  = $row['operatingsystems_id'];
         $OS_version_ID          = $row['operatingsystemversions_id'];
         $OS_kernel_version_ID   = $row['operatingsystemkernelversions_id'];
+        $OS_service_pack_ID     = $row['operatingsystemservicepacks_id'];
 
         /***********************************************************************************************
          * Request operating system name
@@ -126,7 +127,7 @@ class PluginNvdDatabaseutils {
                              'FROM' => 'glpi_operatingsystems',
                              'WHERE' => ['id' => $OS_ID]]);
 
-        $name = ($res->current())['name'];
+        $name = ($res->numrows() == 1) ? ($res->current())['name'] : null;
 
         /***********************************************************************************************
          * Request operating system version
@@ -139,7 +140,7 @@ class PluginNvdDatabaseutils {
                              'FROM' => 'glpi_operatingsystemversions',
                              'WHERE' => ['id' => $OS_version_ID]]);
 
-        $version = ($res->current())['name'];
+        $version = ($res->numrows() == 1) ? ($res->current())['name'] : null;
 
         /***********************************************************************************************
          * Request operating system version
@@ -152,9 +153,8 @@ class PluginNvdDatabaseutils {
                              'FROM' => 'glpi_operatingsystemkernelversions',
                              'WHERE' => ['id' => $OS_kernel_version_ID]]);
 
-        $row = $res->current();
-        $kernel_version = $row['name'];
-        $OS_kernel_ID = $row['operatingsystemkernels_id'];
+        $kernelVersion  = ($res->numrows() == 1) ? ($res->current())['name'] : null;
+        $OS_kernel_ID   = ($res->numrows() == 1) ? ($res->current())['operatingsystemkernels_id'] : 0;
 
         /***********************************************************************************************
          * Request operating system kernel
@@ -167,9 +167,22 @@ class PluginNvdDatabaseutils {
                              'FROM' => 'glpi_operatingsystemkernels',
                              'WHERE' => ['id' => $OS_kernel_ID]]);
 
-        $kernel = ($res->current())['name'];
+        $kernel = ($res->numrows() == 1) ? ($res->current())['name'] : null;
 
-        return [$name, $version, $kernel, $kernel_version];
+        /***********************************************************************************************
+         * Request operating system service pack
+         * 
+         *  SELECT name
+         *  FROM glpi_operatingsystemservicepacks
+         *  WHERE id = $OS_service_pack_ID
+         **********************************************************************************************/
+        $res = $DB->request(['SELECT' => 'name',
+                             'FROM' => 'glpi_operatingsystemservicepacks',
+                             'WHERE' => ['id' => $OS_service_pack_ID]]);
+
+        $servicePack = ($res->numrows() == 1) ? ($res->current())['name'] : null;
+
+        return [$name, $version, $kernel, $kernelVersion, $servicePack];
     }
 }
 

@@ -517,21 +517,23 @@ class PluginNvdUpdatevuln extends CommonGLPI {
         /***********************************************************************************************
          * Request all operating system installations on the devices managed by GLPI
          * 
-         *  SELECT operatingsystems_id, operatingsystemversions_id, operatingsystemkernelversions_id
+         *  SELECT operatingsystems_id, operatingsystemversions_id, operatingsystemkernelversions_id,
+         *      operatingsystemservicepacks_id
          *  FROM glpi_items_operatingsystems
-         *  GROUP BY operatingsystems_id, operatingsystemversions_id, operatingsystemkernelversions_id 
+         *  GROUP BY operatingsystems_id, operatingsystemversions_id, operatingsystemkernelversions_id, 
+         *      operatingsystemservicepacks_id 
          **********************************************************************************************/
-        $res = $DB->request(['SELECT' => ['operatingsystems_id', 'operatingsystemversions_id', 'operatingsystemkernelversions_id'],
+        $res = $DB->request(['SELECT' => ['operatingsystems_id', 'operatingsystemversions_id', 'operatingsystemkernelversions_id', 'operatingsystemservicepacks_id'],
                              'FROM' => 'glpi_items_operatingsystems',
-                             'GROUPBY' => ['operatingsystems_id', 'operatingsystemversions_id', 'operatingsystemkernelversions_id']]);
+                             'GROUPBY' => ['operatingsystems_id', 'operatingsystemversions_id', 'operatingsystemkernelversions_id', 'operatingsystemservicepacks_id']]);
 
         $OSInstalations = [];
         
         foreach ($res as $id => $row) {
             
-            [$name, $version, $kernel, $kernelVersion] = PluginNvdDatabaseutils::requestOSdata($row);
+            [$name, $version, $kernel, $kernelVersion, $servicePack] = PluginNvdDatabaseutils::requestOSdata($row);
 
-            $installationData = PluginNvdCpe::getOSInstallationData($name, $version, $kernel, $kernelVersion);
+            $installationData = PluginNvdCpe::getOSInstallationData($name, $version, $kernel, $kernelVersion, $servicePack);
 
             if (!is_null($installationData)) {
 

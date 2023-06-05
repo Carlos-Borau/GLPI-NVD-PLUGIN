@@ -117,19 +117,20 @@ class PluginNvdVuln extends CommonDBTM {
         /***********************************************************************************************
          * Request operating system version for the given device
          * 
-         *  SELECT operatingsystems_id, operatingsystemversions_id, operatingsystemkernelversions_id
+         *  SELECT operatingsystems_id, operatingsystemversions_id, operatingsystemkernelversions_id,
+         *      operatingsystemservicepacks_id
          *  FROM glpi_items_operatingsystems
          *  WHERE items_id' = $item->getID() AND 'itemtype' = $item->getType()
          **********************************************************************************************/
-        $res = $DB->request(['SELECT' => ['operatingsystems_id', 'operatingsystemversions_id', 'operatingsystemkernelversions_id'],
+        $res = $DB->request(['SELECT' => ['operatingsystems_id', 'operatingsystemversions_id', 'operatingsystemkernelversions_id', 'operatingsystemservicepacks_id'],
                              'FROM' => 'glpi_items_operatingsystems',
                              'WHERE' => ['items_id' => $item->getID(), 'itemtype' => $item->getType()]]);
 
         if ($res->numrows() == 0) { return [$NsoftwareVulns, $NsoftwareVulns, 0]; }
 
-        [$name, $version, $kernel, $kernelVersion] = PluginNvdDatabaseutils::requestOSdata($res->current());
+        [$name, $version, $kernel, $kernelVersion, $servicePack] = PluginNvdDatabaseutils::requestOSdata($res->current());
 
-        $installationData = PluginNvdCpe::getOSInstallationData($name, $version, $kernel, $kernelVersion);
+        $installationData = PluginNvdCpe::getOSInstallationData($name, $version, $kernel, $kernelVersion, $servicePack);
 
         if (is_null($installationData)) { return [$NsoftwareVulns, $NsoftwareVulns, 0]; }
 
@@ -382,28 +383,23 @@ class PluginNvdVuln extends CommonDBTM {
         $vulnerabilities = [];
         $filters = [];
 
-        /**
-         * @todo get device os configuration
-         * @todo create filters based on configuration
-         * @todo request os vulnerabilities related to device
-         */
-
-         /***********************************************************************************************
+        /***********************************************************************************************
          * Request operating system version for the given device
          * 
-         *  SELECT operatingsystems_id, operatingsystemversions_id, operatingsystemkernelversions_id
+         *  SELECT operatingsystems_id, operatingsystemversions_id, operatingsystemkernelversions_id,
+         *      operatingsystemservicepacks_id
          *  FROM glpi_items_operatingsystems
          *  WHERE items_id' = $item->getID() AND 'itemtype' = $item->getType()
          **********************************************************************************************/
-        $res = $DB->request(['SELECT' => ['operatingsystems_id', 'operatingsystemversions_id', 'operatingsystemkernelversions_id'],
+        $res = $DB->request(['SELECT' => ['operatingsystems_id', 'operatingsystemversions_id', 'operatingsystemkernelversions_id', 'operatingsystemservicepacks_id'],
                                           'FROM' => 'glpi_items_operatingsystems',
                                           'WHERE' => ['items_id' => $item->getID(), 'itemtype' => $item->getType()]]);
 
         if ($res->numrows() == 1) { 
 
-            [$name, $version, $kernel, $kernelVersion] = PluginNvdDatabaseutils::requestOSdata($res->current());
+            [$name, $version, $kernel, $kernelVersion, $servicePack] = PluginNvdDatabaseutils::requestOSdata($res->current());
 
-            $installationData = PluginNvdCpe::getOSInstallationData($name, $version, $kernel, $kernelVersion);
+            $installationData = PluginNvdCpe::getOSInstallationData($name, $version, $kernel, $kernelVersion, $servicePack);
 
             if (!is_null($installationData)) {
 
