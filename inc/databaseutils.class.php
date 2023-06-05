@@ -103,9 +103,9 @@ class PluginNvdDatabaseutils {
      * 
      * @since 1.0.0
      * 
-     * @param array $row Array containing OS name, version and kernel version IDs on the GLPI database
+     * @param array $row Array containing OS name, version, kernel version and service pack IDs on the GLPI database
      * 
-     * @return array    Array containing OS name, version, kernel and kernel version
+     * @return array     Array containing OS name, version, kernel, kernel version and service pack
      */
     public static function requestOSdata($row) {
 

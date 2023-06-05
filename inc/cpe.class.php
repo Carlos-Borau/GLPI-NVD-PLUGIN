@@ -234,8 +234,9 @@ class PluginNvdCpe {
      * @param string    $version        Operating system  
      * @param string    $kernel         Operating system kernel name 
      * @param string    $kernelVersion  Operating system kernel version
+     * @param string    $servicePack    Operating system service pack version
      * 
-     * @return array    Array containing OS CPE vendor, product and version and configuration  
+     * @return array    Array containing OS CPE vendor, product and version and OS configuration  
      */
     public static function getOSInstallationData($name, $version, $kernel, $kernelVersion, $servicePack) {
 
@@ -267,8 +268,9 @@ class PluginNvdCpe {
      * @param string    $version        Operating system  
      * @param string    $kernel         Operating system kernel name 
      * @param string    $kernelVersion  Operating system kernel version
+     * @param string    $servicePack    Operating system service pack version
      * 
-     * @return array    Array containing OS CPE vendor, product and version and configuration  
+     * @return array    Array containing OS CPE vendor, product and version and OS configuration  
      */
     private static function classifyWindowsInstallation($name, $version, $kernelVersion, $servicePack) {
 
@@ -329,7 +331,7 @@ class PluginNvdCpe {
      * @param string    $version        Operating system  
      * @param string    $kernel         Operating system kernel name 
      * 
-     * @return array    Array containing OS CPE vendor, product and version and configuration  
+     * @return array    Array containing OS CPE vendor, product and version and OS configuration  
      */
     private static function classifyMacOSInstallation($name, $version) {
 
@@ -367,7 +369,7 @@ class PluginNvdCpe {
      * @param string    $version        Operating system  
      * @param string    $kernel         Operating system kernel name 
      * 
-     * @return array    Array containing OS CPE vendor, product and version and configuration  
+     * @return array    Array containing OS CPE vendor, product and version and OS configuration  
      */
     private static function classifyLinuxInstallation($name, $version) {
 
