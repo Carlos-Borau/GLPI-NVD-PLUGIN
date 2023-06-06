@@ -198,7 +198,6 @@ class PluginNvdCpe {
 
         $name = str_replace('corporation', '', $name);
         $name = str_replace('inc.', '', $name);
-        $name = str_replace('team', '', $name);
         $name = str_replace('edition', '', $name);
         $name = str_replace('32-bit', '', $name);
         $name = str_replace('64-bit', '', $name);
