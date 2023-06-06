@@ -72,7 +72,7 @@ class PluginNvdDatabaseutils {
      * 
      * @return string    NVD API key
      */
-    private static function getNvdApiKey() {
+    public static function getNvdApiKey() {
 
         global $DB;
 
