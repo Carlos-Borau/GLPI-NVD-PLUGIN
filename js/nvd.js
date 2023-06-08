@@ -31,7 +31,7 @@ function addEventListeners() {
             if(this.readyState == 4 && this.status == 200){
                 var response = JSON.parse(this.responseText);
 
-                selectProduct.innerHTML = selectProduct.firstChild.outerHTML;
+                resetSelects(selectProduct);
 
                 var prodList = '';
 
@@ -109,7 +109,7 @@ function addOption(select, value) {
     select.appendChild(option);
 }
 
-function resetSelects(select, otherSelect, otherHiddenList=null) {
+function resetSelects(select, otherSelect=null, otherHiddenList=null) {
 
     select.innerHTML = select.firstChild.outerHTML;
     select.value = '-DEFAULT-';
