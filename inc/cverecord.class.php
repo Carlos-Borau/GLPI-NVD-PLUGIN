@@ -101,10 +101,10 @@ class PluginNvdCverecord {
 
                 $warning .= __('Some of the CPE configurations for this software that are associated with this vulnerability may contain some constraints on the following CPE attributes:');
                             
-                if (!is_null($update)) { $warning .= '\n - update: ' . str_replace(" ", ", ", $update); }
-                if (!is_null($edition)) { $warning .= '\n - sw_edition: ' . str_replace(" ", ", ", $edition); }
-                if (!is_null($target_sw)) { $warning .= '\n - target_sw: ' . str_replace(" ", ", ", $target_sw); }
-                if (!is_null($target_hw)) { $warning .= '\n - target_hw: ' . str_replace(" ", ", ", $target_hw); }
+                if (!is_null($update)) { $warning .= '<br> - update: ' . str_replace(" ", ", ", $update); }
+                if (!is_null($edition)) { $warning .= '<br> - sw_edition: ' . str_replace(" ", ", ", $edition); }
+                if (!is_null($target_sw)) { $warning .= '<br> - target_sw: ' . str_replace(" ", ", ", $target_sw); }
+                if (!is_null($target_hw)) { $warning .= '<br> - target_hw: ' . str_replace(" ", ", ", $target_hw); }
 
             } else {
 
