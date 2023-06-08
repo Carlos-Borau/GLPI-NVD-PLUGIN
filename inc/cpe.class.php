@@ -182,7 +182,7 @@ class PluginNvdCpe {
         // Turn string into array
         $terms = explode(',', $productName);
         
-        return $terms;
+        return array_filter($terms);
     }
 
     /**
