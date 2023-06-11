@@ -252,12 +252,13 @@ class PluginNvdVuln extends CommonDBTM {
      */
     private static function displayForSoftware(Software $item) {
 
-        global $DB;
+        global $DB, $CFG_GLPI;
 
         /***********************************************************************************************
          * Request vulnerabilities to which the given software's different versions are vulnerable
          * 
-         *  SELECT vuln_id AS VULN_ID, GROUP_CONCAT(name) AS version
+         *  SELECT vuln_id AS VULN_ID, 
+         *   GROUP_CONCAT(glpi_softwareversions.id, ':', glpi_softwareversions.name) AS version
          *  FROM glpi_plugin_nvd_vulnerable_software_versions 
          *  INNER JOIN glpi_softwareversions 
          *  ON glpi_plugin_nvd_vulnerable_software_versions.softwareversions_id = glpi_softwareversions.id
@@ -266,7 +267,7 @@ class PluginNvdVuln extends CommonDBTM {
          **********************************************************************************************/
         $res = $DB->request(['SELECT' => [
                                 'vuln_id AS VULN_ID',
-                                new QueryExpression("GROUP_CONCAT(`name`) AS `version`")
+                                new QueryExpression("GROUP_CONCAT(`glpi_softwareversions`.`id`, ':', `glpi_softwareversions`.`name`) AS `version`")
                              ],
                              'FROM' => 'glpi_plugin_nvd_vulnerable_software_versions',
                              'INNER JOIN' => ['glpi_softwareversions' => ['FKEY' => ['glpi_plugin_nvd_vulnerable_software_versions' => 'softwareversions_id',
@@ -274,7 +275,23 @@ class PluginNvdVuln extends CommonDBTM {
                              'WHERE' => ['softwares_id' => $item->getID()],
                              'GROUPBY' => 'vuln_id']);
         
-        $vulnerabilities = PluginNvdDatabaseutils::pushResToArray($res, 'version', 'VULN_ID');
+        $vulnerabilities = [];
+
+        foreach ($res as $id => $row) {
+
+            $versions = explode(',', $row['version']);
+
+            $instances = [];
+
+            foreach ($versions as $version) {
+
+                [$id, $name] = explode(':', $version);
+
+                $instances[] = '<a href="' . "{$CFG_GLPI['root_doc']}/front/softwareversion.form.php?id=" . $id . '">' . $name . '</a>';
+            }
+
+            $vulnerabilities[$row['VULN_ID']] = implode(', ', $instances);
+        }
 
         /***********************************************************************************************
          * Request CPE vendor and product name associated with given software
