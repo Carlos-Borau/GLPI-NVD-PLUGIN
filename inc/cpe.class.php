@@ -139,7 +139,7 @@ class PluginNvdCpe {
         // Turn string into array
         $terms = explode(',', $vendorName);
         
-        return $terms;
+        return array_filter($terms);
     }
 
     /**
