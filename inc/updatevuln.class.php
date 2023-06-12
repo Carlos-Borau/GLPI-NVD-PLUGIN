@@ -245,8 +245,8 @@ class PluginNvdUpdatevuln extends CommonGLPI {
             // Get CVE records from NVD
             $records = $NVD_Connection->launchRequest();
 
-            // If a request returned null try again
-            if (is_null($records)) { continue; }
+            // If a request returned null abort
+            if (is_null($records)) { break; }
 
             // Number of total results
             $totalResults = $records['totalResults'];
