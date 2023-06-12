@@ -101,26 +101,39 @@ class PluginNvdSoftwarecpe extends CommonDBTM {
         } 
 
         /***********************************************************************************************
-         * Request software and vendor names in GLPI for given software
+         * Request software name in GLPI for given software
          * 
-         *  SELECT glpi_manufacturers.name, glpi_softwares.name
+         *  SELECT name
          *  FROM glpi_softwares
-         *  INNER JOIN glpi_manufacturers
-         *  ON glpi_softwares.manufacturers_id = glpi_manufacturers.id
-         *  WHERE glpi_softwares.id = $item->getID()
+         *  WHERE id = $item->getID()
          **********************************************************************************************/
-        $res = $DB->request(['SELECT' => ['glpi_manufacturers.name AS vendor', 'glpi_softwares.name AS product'],
-        'FROM' => 'glpi_softwares',
-        'INNER JOIN' => ['glpi_manufacturers' => ['FKEY' => ['glpi_softwares' => 'manufacturers_id',
-                                                                'glpi_manufacturers' => 'id']]],
-        'WHERE' => ['glpi_softwares.id' => $item->getID()]]);
+        $res = $DB->request(['SELECT' => ['name', 'manufacturers_id'],
+                             'FROM' => 'glpi_softwares',
+                             'WHERE' => ['id' => $item->getID()]]);
 
-        if ($res->numrows() == 1) {
-            
+        if ($res->numrows()==1) {
+
             $row = $res->current();
 
-            $vendor_GLPI_name = $row['vendor'];
-            $product_GLPI_name = $row['product'];
+            $product_GLPI_name = $row['name'];
+
+            /***********************************************************************************************
+             * Request manufacturer name in GLPI for given software
+             * 
+             *  SELECT name
+             *  FROM glpi_manufacturers
+             *  WHERE id = glpi_softwares.manufacturers_id
+             **********************************************************************************************/
+            $res = $DB->request(['SELECT' => 'name',
+                                 'FROM' => 'glpi_manufacturers',
+                                 'WHERE' => ['id' => $row['manufacturers_id']]]);
+            
+            if ($res->numrows() == 1) {
+
+                $row = $res->current();
+
+                $vendor_GLPI_name = $row['name'];
+            }
         }
 
         // Print current CPE associations for given software
